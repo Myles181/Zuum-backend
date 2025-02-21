@@ -11,19 +11,17 @@ Zuum is a dynamic music social media platform that enables users to share music 
 ## Getting Started
 
 To set up Zuum locally:
-
-1. **Fork the Repository**
  
-2. **Clone the Repository**:
+1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/original-author/Zuum-backend.git
+   git clone https://github.com/Myles181/Zuum-backend.git
    ```
-3. **Install Dependencies**:
+2. **Install Dependencies**:
    ```bash
    cd Zuum-backend
    npm install
    ```
-4. **Start the Application**:
+3. **Start the Application**:
    ```bash
    npm start
    ```
