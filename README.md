@@ -30,7 +30,7 @@ To set up Zuum locally:
 
 ## Contributing
 
-We welcome contributions! Please read our [CONTRIBUTING.md](link_to_contributing.md) for guidelines on how to proceed.
+We welcome contributions! Please read our [CONTRIBUTING.md](https://github.com/Myles181/Zuum-backend/blob/main/CONTRIBUTION.md) for guidelines on how to proceed.
 
 ## Design Prototype
 
@@ -43,5 +43,5 @@ This project is licensed under the [MIT License](link_to_license).
 
 ## Contact
 
-For inquiries or support, reach out to [support@example.com](mailto:support@example.com).
+For inquiries or support, reach out to [support@example.com](mailto:cyrile450@gmail.com).
 
