@@ -65,13 +65,5 @@ Before submitting a pull request (PR):
    - **Add Labels**: Assign appropriate labels (e.g., `enhancement`, `bug`, `documentation`).
    - **Provide a Descriptive Title and Description**: Clearly outline the purpose and details of the PR.
 
-## Code of Conduct
+![image](https://github.com/user-attachments/assets/8683c23c-764c-4501-a89b-4ea3dd477cec)
 
-Please adhere to our [Code of Conduct](link_to_code_of_conduct) to maintain a respectful and collaborative environment.
-
-## Contact
-
-For questions or assistance, open an issue or contact [maintainer@example.com](mailto:maintainer@example.com).
-
-We appreciate your contributions and efforts to improve Zuum!
-```
