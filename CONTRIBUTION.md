@@ -65,5 +65,5 @@ Before submitting a pull request (PR):
    - **Add Labels**: Assign appropriate labels (e.g., `enhancement`, `bug`, `documentation`).
    - **Provide a Descriptive Title and Description**: Clearly outline the purpose and details of the PR.
 
-![image](https://github.com/user-attachments/assets/8683c23c-764c-4501-a89b-4ea3dd477cec)
 
+![Untitled design](https://github.com/user-attachments/assets/6b5963c9-a308-4383-9d73-671e65e67839)
