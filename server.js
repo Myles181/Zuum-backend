@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const setupSwagger = require('./swagger');
+const { create_db_tables } = require('./create_tables');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,10 @@ app.use('/auth', authRoutes);
 
 // Setup Swagger Documentation
 setupSwagger(app);
+
+// Create new tables if any
+create_db_tables();
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

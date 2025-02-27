@@ -1,10 +1,19 @@
 const db = require('../config/db.conf');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
+
 const { SECRET_KEY } = 'SECRET-KEY';
 
 
 exports.signup = async (req, res) => {
+    
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     
@@ -12,12 +21,23 @@ exports.signup = async (req, res) => {
         await db.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
+        console.log(error.code);
+        if (error.code === 'ER_DUP_ENTRY') {
+            res.status(406).json({ error: error.message });
+        }
         res.status(500).json({ error: error.message });
     }
 };
 
 
 exports.login = async (req, res) => {
+
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array()});
+    }
+
     const { email, password } = req.body;
     try {
         const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);

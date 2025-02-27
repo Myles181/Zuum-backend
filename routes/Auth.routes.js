@@ -1,11 +1,12 @@
 const express = require('express');
 const { signup, login } = require('../controllers/User.controller');
+const { signupValidator, signinValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
 
 /**
  * @swagger
- * /signup:
+ * /auth/signup:
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user with a hashed password.
@@ -25,14 +26,18 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: User registered successfully
+ *       406:
+ *         description: Email or Username field already exists
+ *       400:
+ *         description: Field validatiion failed
  *       500:
  *         description: Internal server error
  */
-router.post('/signup', signup);
+router.post('/signup', ...signupValidator, signup);
 
 /**
  * @swagger
- * /login:
+ * /auth/login:
  *   post:
  *     summary: User login
  *     description: Authenticates user and returns a JWT token.
@@ -50,12 +55,15 @@ router.post('/signup', signup);
  *     responses:
  *       200:
  *         description: Login successful
+ *       400:
+ *         description: Field validatiion failed
  *       401:
  *         description: Invalid credentials
  *       500:
  *         description: Internal server error
  */
 
-router.post('/login', login);
+router.post('/login', ...signinValidator, login);
 
 module.exports = router;
+

@@ -8,7 +8,12 @@ const createUserTable = async () => {
             username VARCHAR(255) NOT NULL,
             email VARCHAR(255) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            phone_number VARCHAR(100),
+            identity VARCHAR(8) NOT NULL DEFAULT 'artist',
+            is_admin BOOLEAN DEFAULT false,
+            deactivated BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`);
         console.log('✅ User table is ready!');
         connection.release();
@@ -18,6 +23,5 @@ const createUserTable = async () => {
 };
 
 // Run this function before starting the server
-createUserTable();
 
-module.exports = db;
+module.exports = {createUserTable};
