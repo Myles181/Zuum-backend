@@ -1,7 +1,8 @@
 const express = require('express');
+const passport = require('passport');
 const { signup, login } = require('../controllers/User.controller');
-const router = express.Router();
 
+const router = express.Router();
 
 /**
  * @swagger
@@ -55,7 +56,49 @@ router.post('/signup', signup);
  *       500:
  *         description: Internal server error
  */
-
 router.post('/login', login);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Authenticate with Google
+ *     description: Redirects the user to Google's authentication page.
+ *     responses:
+ *       302:
+ *         description: Redirects to Google authentication
+ */
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Google authentication callback
+ *     description: Handles the callback from Google after authentication.
+ *     responses:
+ *       302:
+ *         description: Redirects to dashboard after successful login
+ *       401:
+ *         description: Authentication failed
+ */
+router.get('/google/callback', 
+    passport.authenticate('google', { 
+        successRedirect: '/auth/google/success',
+        failureRedirect: '/auth/google/failure'
+    })
+);
+
+router.get('/google/success', (req, res) => {
+    res.json({
+        message: "Login successful",
+        user: req.user
+    });
+});
+
+router.get('/google/failure', (req, res) => {
+    res.status(401).json({ error: "Authentication failed" });
+})
+
 
 module.exports = router;
