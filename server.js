@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const bodyParser = require('body-parser');
 const setupSwagger = require('./swagger');
+const { create_db_tables } = require('./create_tables');
 const passport = require('passport');
 const session = require('express-session');
 
@@ -32,6 +33,10 @@ app.use('/auth', authRoutes);
 
 // Setup Swagger Documentation
 setupSwagger(app);
+
+// Create new tables if any
+create_db_tables();
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
