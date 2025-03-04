@@ -24,4 +24,7 @@ async function testDBConnection() {
 
 testDBConnection();
 
+// Create new tables if any
+// console.log(x)
+
 module.exports = pool;
