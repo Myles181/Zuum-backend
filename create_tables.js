@@ -1,11 +1,11 @@
-const { createUserTable } = require('./models/User.model.js');
+const { createUserTable, createOtpTable } = require('./models/User.model.js');
 const { createProfileTable } = require('./models/Profile.model.js');
 const { createFollowTable } = require('./models/Followers.model.js');
 const {
     createPostAudioTable, 
-    PostAudioCommentsTable,
-    PostAudioSharesTable, 
-    PostAudioLikesTable } = require('./models/PostAudio.model.js');
+    createPostAudioCommentsTable,
+    createPostAudioLikesTable, 
+    createPostAudioSharesTable } = require('./models/PostAudio.model.js');
 
 const {
     createPostVideoTable,
@@ -18,18 +18,19 @@ const {
 
 // This function creates all tables and it should be ran before starting the server 
 const create_db_tables = async () => {
-    createUserTable();
-    createProfileTable();
-    createFollowTable();
-    createPostAudioTable();
-    PostAudioCommentsTable();
-    PostAudioSharesTable();
-    PostAudioLikesTable();
-    createPostVideoTable();
-    PostVideoCommentsTable();
-    PostTaggedPeopleTable();
-    PostVideoLikesTable();
-    PostVideoSharesTable();
+    await createUserTable();
+    await createOtpTable();
+    await createProfileTable();
+    await createFollowTable();
+    await createPostAudioTable();
+    await createPostAudioCommentsTable();
+    await createPostAudioLikesTable();
+    await createPostAudioSharesTable();
+    await createPostVideoTable();
+    await PostVideoCommentsTable();
+    await PostTaggedPeopleTable();
+    await PostVideoLikesTable();
+    await PostVideoSharesTable();
 
     return
 }

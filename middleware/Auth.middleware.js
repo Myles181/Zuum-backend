@@ -29,3 +29,38 @@ exports.signinValidator = [
         .notEmpty().withMessage('Password is required')
 ];
 
+exports.EmailValidator = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format')
+];
+
+exports.resetPasswordValidator = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('newPassword')
+        .trim()
+        .notEmpty().withMessage('Password is required'),
+    
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('Otp is required')
+];
+
+exports.verifyEmailValidator = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('Otp is required')
+];
+
+
+
