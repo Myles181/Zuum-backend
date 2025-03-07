@@ -17,7 +17,7 @@ const createFollowTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Follow table is ready!');
+        // console.log('✅ Follow table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating Follow table:', err);

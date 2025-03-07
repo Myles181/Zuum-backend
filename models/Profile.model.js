@@ -13,12 +13,11 @@ const createProfileTable = async () => {
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-                
                 CONSTRAINT fk_user FOREIGN KEY (user_id) 
                 REFERENCES users(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Profile table is ready!');
+        // console.log('✅ Profile table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);

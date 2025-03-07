@@ -17,7 +17,7 @@ const createPostBeatTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Beat table is ready!');
+        // console.log('✅ Post Beat table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);

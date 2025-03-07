@@ -11,17 +11,31 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000', // Change this to your server URL
+        url: 'http://localhost:5000', // Your server URL
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT', // Specifies that the token is a JWT
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [], // Applies Bearer auth globally (optional, can be overridden per route)
       },
     ],
   },
-  apis: ['./controllers/*.js', './routes/*.js'], // Path to the API routes
+  apis: ['./controllers/*.js', './routes/*.js'], // Paths to files with Swagger comments
 };
 
 const swaggerSpec = swaggerJsdoc(options);
 
-function setupSwagger(app) {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-}
-
-module.exports = setupSwagger;
+// Export for use in your app
+module.exports = {
+  swaggerUi,
+  swaggerSpec,
+};

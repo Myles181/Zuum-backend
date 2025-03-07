@@ -1,4 +1,9 @@
 const { body } = require('express-validator');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const db = require('../config/db.conf');
+
+
 
 exports.signupValidator = [
     body('username')
@@ -62,5 +67,27 @@ exports.verifyEmailValidator = [
         .notEmpty().withMessage('Otp is required')
 ];
 
+exports.tokenRequired = async (req, res, next) => {
+    try {
+        // Token extraction looks good
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid token provided' });
+        }
 
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
+        // Check if the user exists
+        const userData = await db.query("SELECT * FROM users WHERE id = $1 AND deleted = false", [decoded.id]); // Fixed placeholder syntax
+        if (userData.rows.length === 0) { // Fixed condition - userData is a query result object
+            console.log("User does not exist"); // Fixed typo in message
+            return res.status(404).json({ status: false, error: 'User not found' });
+        }
+
+        req.user = userData.rows[0]; // Store the actual user object, not the query result
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+};

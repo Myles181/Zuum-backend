@@ -15,11 +15,12 @@ const createUserTable = async () => {
                 email_verified BOOLEAN DEFAULT false,
                 is_admin BOOLEAN DEFAULT false,
                 deactivated BOOLEAN DEFAULT false,
+                deleted BOOLEAN DEFAULT false,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log('✅ User table is ready!');
+        // console.log('✅ User table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -39,7 +40,7 @@ const createOtpTable = async () => {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         `);
-        console.log('✅ OTP table is ready!');
+        // console.log('✅ OTP table is ready!');
         client.release();
 
     } catch (err) {

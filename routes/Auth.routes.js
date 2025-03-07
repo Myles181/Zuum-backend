@@ -1,6 +1,6 @@
 const express = require('express');
 const passport = require('passport');
-const { signup, login, forgotPassword, verifyEmail, resetPassword, resendOtp } = require('../controllers/User.controller');
+const { signup, login, forgotPassword, verifyEmail, resetPassword, resendOtp } = require('../controllers/Auth.controller');
 const { signupValidator, signinValidator, EmailValidator, verifyEmailValidator, resetPasswordValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
@@ -9,9 +9,10 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/signup:
+ * /api/auth/signup:
  *   post:
  *     summary: User Signup
+ *     tags: [Auth]
  *     description: Registers a new user and sends an OTP for email verification.
  *     requestBody:
  *       required: true
@@ -42,9 +43,10 @@ router.post('/signup', ...signupValidator, signup);
 
 /**
  * @swagger
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: User Login
+ *     tags: [Auth]
  *     description: Authenticates a user and returns a JWT token.
  *     requestBody:
  *       required: true
@@ -73,9 +75,10 @@ router.post('/login', ...signinValidator, login);
 
 /**
  * @swagger
- * /auth/forgot-password:
+ * /api/auth/forgot-password:
  *   post:
  *     summary: Forgot Password
+ *     tags: [Auth]
  *     description: Sends a password reset link to the user's email.
  *     requestBody:
  *       required: true
@@ -99,9 +102,10 @@ router.post('/forgot-password', ...EmailValidator, forgotPassword);
 
 /**
  * @swagger
- * /auth/reset-password:
+ * /api/auth/reset-password:
  *   post:
  *     summary: Reset Password
+ *     tags: [Auth]
  *     description: Resets the user's password using a token.
  * 
  *     requestBody:
@@ -132,9 +136,10 @@ router.post('/reset-password', ...resetPasswordValidator, resetPassword);
 
 /**
  * @swagger
- * /auth/verify-email:
+ * /api/auth/verify-email:
  *   post:
  *     summary: Verify Email
+ *     tags: [Auth]
  *     description: Verifies user's email using an OTP.
  *     requestBody:
  *       required: true
@@ -160,9 +165,10 @@ router.post('/verify-email', ...verifyEmailValidator, verifyEmail);
 
 /**
  * @swagger
- * /auth/resend-otp:
+ * /api/auth/resend-otp:
  *   post:
  *     summary: Resend OTP
+ *     tags: [Auth]
  *     description: Resends an OTP to the user's email.
  *     requestBody:
  *       required: true
@@ -187,9 +193,10 @@ router.post('/resend-otp', ...EmailValidator, resendOtp);
 
 /**
  * @swagger
- * /auth/google:
+ * /api/auth/google:
  *   get:
  *     summary: Authenticate with Google
+ *     tags: [Auth]
  *     description: Redirects the user to Google's authentication page.
  *     responses:
  *       302:
@@ -199,9 +206,10 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 
 /**
  * @swagger
- * /auth/google/callback:
+ * /api/auth/google/callback:
  *   get:
  *     summary: Google authentication callback
+ *     tags: [Auth]
  *     description: Handles the callback from Google after authentication.
  *     responses:
  *       302:

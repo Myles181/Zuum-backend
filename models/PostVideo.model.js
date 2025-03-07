@@ -21,7 +21,7 @@ const createPostVideoTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Video table is ready!');
+        // console.log('✅ Post Video table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -43,7 +43,7 @@ const PostVideoLikesTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Video Likes table is ready!');
+        // console.log('✅ Post Video Likes table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -66,7 +66,7 @@ const PostVideoCommentsTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Video Comments table is ready!');
+        // console.log('✅ Post Video Comments table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -89,7 +89,7 @@ const PostVideoSharesTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Video Shares table is ready!');
+        // console.log('✅ Post Video Shares table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -111,7 +111,7 @@ const PostTaggedPeopleTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Video Tagged People table is ready!');
+        // console.log('✅ Post Video Tagged People table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);

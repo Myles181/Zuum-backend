@@ -1,280 +1,191 @@
 require('dotenv').config();
-const db = require('../config/db.conf');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const db = require('../config/db.conf.js');
 const { validationResult } = require('express-validator');
+const { transporter } = require('../helpers/transport.js');
+const { generateOtp, saveOtp } = require("../utils/otp-utils.js");
+const cloudinary = require('cloudinary').v2;
 
-const SECRET_KEY = process.env.SECRET_KEY;
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth2').Strategy;
 
-console.log(SECRET_KEY)
+// const SECRET_KEY = process.env.SECRET_KEY;
 
-const nodemailer = require("nodemailer");
-const { generateOtp, saveOtp, validateOtp } = require("../utils/otp-utils.js");
+// console.log(SECRET_KEY)
 
-exports.signup = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { username, email, password } = req.body;
-
+exports.getProfile = async (req, res) => {
     try {
-        // Check if email already exists
-        const emailCheck = await db.query("SELECT id FROM users WHERE email = $1", [email]);
-        if (emailCheck.rows.length > 0) {
-            return res.status(409).json({ error: "Email already exists. Please log in or use a different email." });
+        const result = await db.query(
+            `
+            SELECT 
+                p.id,
+                p.image,
+                p.cover_image,
+                p.bio,
+                p.created_at,
+                u.username,
+                u.email,
+                u.phone_number,
+                u.identity,
+                u.email_verified,
+                u.is_admin,
+                u.deactivated
+            FROM profile p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.user_id = $1
+            `,
+            [req.user.id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        res.status(200).json(result.rows[0]);
 
-        // Create the user
-        const new_user = await db.query(
-            "INSERT INTO users (username, email, password, email_verified) VALUES ($1, $2, $3, $4) RETURNING id",
-            [username, email, hashedPassword, false]
-        );
-
-        const userId = new_user.rows[0].id;
-
-        // Create the Profile
-        await db.query(
-            "INSERT INTO profile (user_id) VALUES ($1)",
-            [userId]
-        )
-
-        // Generate and save OTP
-        const otp = generateOtp();
-        await saveOtp(email, otp);
-
-        // Send OTP via Email
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Verify Your Email",
-            html: `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 15 minutes.</p>`,
-        };
-
-        await transporter.sendMail(mailOptions);
-
-        res.status(201).json({ message: "User registered successfully. Please verify your email." });
-    } catch (error) {
-        console.log(error);
-        if (error.code === "ER_DUP_ENTRY") {
-            return res.status(406).json({ error: "Email already exists" });
-        }
-        res.status(500).json({ error: error.message });
-    }
-};
-
-
-
-exports.login = async (req, res) => {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password } = req.body;
-
-    try {
-        const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        // If user does not exist
-        if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
-
-        const user = rows[0];
-
-        // Unhash password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
-
-        const token = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '1h' });
-        res.json({ message: 'Login successful', token });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-};
+}
 
-exports.forgotPassword = async (req, res) => {
-    const { email } = req.body;
+exports.updateProfile = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        console.log(errors);
+        return res.status(400).json({ errors: errors.array() });
+    }
 
     try {
-        // Find user in the database
-        const { rows: users } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+        const { username, email, phone_number, bio } = req.body;
+        const userId = req.user.id;
+        let imageUrl, coverImageUrl;
+        let emailVerificationSent = false;
 
-        if (users.length === 0) return res.status(404).json({ error: "User not found" });
+        console.log(req.body);
 
-        const user = users[0];
+        // Handle file uploads to Cloudinary
+        if (req.files && req.files.image) {
+            console.log("I got here");
+            const imageResult = await cloudinary.uploader.upload(req.files.image.tempFilePath);
+            imageUrl = imageResult.secure_url;
+        }
+        if (req.files && req.files.cover_image) {
+            const coverImageResult = await cloudinary.uploader.upload(req.files.cover_image.tempFilePath);
+            coverImageUrl = coverImageResult.secure_url;
+        }
 
-        // Generate a reset token (valid for 15 mins)
-        const resetToken = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: "15m" });
+        // Update users table if any user fields are provided
+        if (username || email || phone_number) {
+            const userUpdates = [];
+            const userValues = [];
+            let paramIndex = 1;
 
-        // Generate and save OTP
-        const otp = generateOtp();
-        await saveOtp(email, otp);
-        
-        // Send Email
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
+            if (username) {
+                userUpdates.push(`username = $${paramIndex++}`);
+                userValues.push(username);
             }
+            if (email) {
+                userUpdates.push(`email = $${paramIndex++}`);
+                userValues.push(email);
+                userUpdates.push(`email_verified = $${paramIndex++}`);
+                userValues.push(false);
+            }
+            if (phone_number) {
+                userUpdates.push(`phone_number = $${paramIndex++}`);
+                userValues.push(phone_number);
+            }
+
+            userValues.push(userId);
+            await db.query(
+                `UPDATE users SET ${userUpdates.join(', ')} WHERE id = $${paramIndex}`,
+                userValues
+            );
+
+            // Send email verification if email changed
+            if (email) {
+                const otp = generateOtp();
+                await saveOtp(email, otp);
+
+                await transporter.sendMail({
+                    from: process.env.EMAIL_USER,
+                    to: email,
+                    subject: 'Verify Your New Email',
+                    text: `Your verification code is: ${otp}.  It will expire in 15 minutes`,
+                });
+                emailVerificationSent = true;
+            }
+        }
+
+        // Update profile table if any profile fields are provided
+        if (imageUrl || coverImageUrl || bio) {
+            const profileUpdates = [];
+            const profileValues = [];
+            let paramIndex = 1;
+
+            if (imageUrl) {
+                profileUpdates.push(`image = $${paramIndex++}`);
+                profileValues.push(imageUrl);
+            }
+            if (coverImageUrl) {
+                profileUpdates.push(`cover_image = $${paramIndex++}`);
+                profileValues.push(coverImageUrl);
+            }
+            if (bio) {
+                profileUpdates.push(`bio = $${paramIndex++}`);
+                profileValues.push(bio);
+            }
+
+            profileValues.push(userId);
+            const profileResult = await db.query(
+                `UPDATE profile SET ${profileUpdates.join(', ')} WHERE user_id = $${paramIndex} RETURNING *`,
+                profileValues
+            );
+
+            if (profileResult.rows.length === 0) {
+                return res.status(404).json({
+                    status: false,
+                    error: 'Profile not found',
+                });
+            }
+        }
+
+        await db.query('COMMIT');
+        res.status(200).json({
+            status: true,
+            message: 'Profile updated successfully',
+            emailVerificationSent,
         });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Password Reset",
-            html: `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 15 minutes.</p>`,
-        };
-
-
-        await transporter.sendMail(mailOptions);
-
-        res.json({ message: "Reset link sent to your email" });
-
     } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.resetPassword = async (req, res) => {
-    const { email, otp, newPassword } = req.body;
-
-    try {
-        const { valid, reason, otpId } = await validateOtp(email, otp);
-
-        if (!valid) {
-            return res.status(400).json({ error: reason });
-        }
-
-        // Hash the new password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        // Update password in the database
-        await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, decoded.id]);
-
-
-        // Mark OTP as used
-        await db.query("UPDATE otp SET status = 'success' WHERE id = $1", [otpId]);
-
-        res.json({ message: "Password reset successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-
-exports.verifyEmail = async (req, res) => {
-    const { email, otp } = req.body;
-
-    try {
-        const { valid, reason, otpId } = await validateOtp(email, otp);
-
-        if (!valid) {
-            return res.status(400).json({ error: reason });
-        }
-
-        // Update user email_verified field
-        await db.query("UPDATE users SET email_verified = true WHERE email = $1", [email]);
-
-        // Mark OTP as used
-        await db.query("UPDATE otp SET status = 'success' WHERE id = $1", [otpId]);
-
-        res.json({ message: "Email verified successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.resendOtp = async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        // Generate new OTP
-        const newOtp = generateOtp();
-        await saveOtp(email, newOtp);
-
-        // Send OTP via Email
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
+        await db.query('ROLLBACK');
+        console.error(error);
+        res.status(500).json({
+            status: false,
+            error: error.message,
         });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Resend OTP Verification Code",
-            html: `<p>Your new OTP code is <strong>${newOtp}</strong>. It will expire in 15 minutes.</p>`,
-        };
-
-        await transporter.sendMail(mailOptions);
-
-        res.json({ message: "New OTP sent to your email" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 };
 
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALL_BACK,
-    passReqToCallback: true
-  },
-  async function(request, accessToken, refreshToken, profile, done) {
+exports.deleteProfile = async (req, res) => {
     try {
-        // Check if the user already exists in the database
-        const [users] = await db.query('SELECT * FROM users WHERE google_id = ?', [profile.id]);
-        if (users.length > 0) {
-            return done(null, users[0]); 
-        }
-        // User does not exist, proceed to create a new user
-        const newUser = {
-            username: profile.displayName,
-            email: profile.emails[0].value, // Ensure you're accessing the correct email
-            google_id: profile.id
-        };
-        await db.query(
-            'INSERT INTO users (username, email, google_id) VALUES (?, ?, ?)', 
-            [newUser.username, newUser.email, newUser.google_id]
+        const userId = req.user.id;
+        const result = await db.query(
+            "UPDATE users SET deleted = true WHERE id = $1 AND deleted = false RETURNING *",
+            [userId]
         );
-        const [createdUser] = await db.query('SELECT * FROM users WHERE google_id = ?', [profile.id]);
-        return done(null, createdUser[0]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                status: false,
+                error: "Profile not found or already deleted",
+            });
+        }
+
+        res.status(200).json({
+            status: true,
+            message: "Profile deleted successfully",
+        });
     } catch (error) {
-        console.error('Error in Google OAuth strategy:', error.sqlMessage || error.message); // Log the error message
-        return done(error, null);
+        console.error(error);
+        res.status(500).json({
+            status: false,
+            error: error.message,
+        });
     }
-  }
-));
-
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-    try {
-        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
-        done(null, users[0]);
-    } catch (error) {
-        console.error('Error in deserializeUser:', error.sqlMessage || error.message); // Log the error message
-        done(error, null);
-    }
-});
-
+};

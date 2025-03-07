@@ -24,7 +24,7 @@ const createPostAudioTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Audio table is ready!');
+        // console.log('✅ Post Audio table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -46,7 +46,7 @@ const createPostAudioLikesTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Audio Likes table is ready!');
+        // console.log('✅ Post Audio Likes table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -69,7 +69,7 @@ const createPostAudioCommentsTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Audio Comments table is ready!');
+        // console.log('✅ Post Audio Comments table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
@@ -92,7 +92,7 @@ const createPostAudioSharesTable = async () => {
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
-        console.log('✅ Post Audio Share table is ready!');
+        // console.log('✅ Post Audio Share table is ready!');
         client.release();
     } catch (err) {
         console.error('❌ Error creating table:', err);
