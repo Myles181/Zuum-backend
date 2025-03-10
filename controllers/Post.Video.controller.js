@@ -4,6 +4,8 @@ const { validationResult } = require('express-validator');
 // const { transporter } = require('../helpers/transport.js');
 const cloudinary = require('cloudinary').v2;
 // const ffmpeg = require("fluent-ffmpeg");
+const { sendNotification } = require("../helpers/notification.service.js"); // Import sendNotification. To be used for emitting notifications
+
 
 
 exports.createVideoPost = async (req, res) => {
@@ -226,6 +228,7 @@ exports.reactToVideoPost = async (req, res) => {
         }
         
         const post = postResult.rows[0];
+        const postOwnerId = post.user_id;
         let likesCount = post.likes;
         let unlikesCount = post.unlikes;
 
@@ -262,6 +265,10 @@ exports.reactToVideoPost = async (req, res) => {
             if (reaction.unlike && !unlike) unlikesCount--; // Removed unlike
             if (!reaction.like && like) likesCount++; // Added like
             if (!reaction.unlike && unlike) unlikesCount++; // Added unlike
+
+            notificationMessage = like 
+                ? `Someone changed their reaction to Like on your video post.` 
+                : `Someone changed their reaction to Unlike on your video post.`;
             
         } else {
             // Insert new reaction
@@ -274,6 +281,10 @@ exports.reactToVideoPost = async (req, res) => {
             // Update counter for new reaction
             if (like) likesCount++;
             if (unlike) unlikesCount++;
+
+            notificationMessage = like 
+            ? `Someone liked your video post!` 
+            : `Someone disliked your video post.`;
         }
         
         // Update the post counts
@@ -283,6 +294,11 @@ exports.reactToVideoPost = async (req, res) => {
              WHERE id = $3`,
             [likesCount, unlikesCount, post_id]
         );
+
+          // Send real-time notification to post owner
+          if (profileId !== postOwnerId) {
+            sendNotification(postOwnerId, notificationMessage, "reaction");
+        }
         
         return res.status(hasExistingReaction ? 200 : 201).json({ 
             status: true, 

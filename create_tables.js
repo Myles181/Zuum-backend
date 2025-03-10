@@ -15,6 +15,8 @@ const {
     PostVideoSharesTable,
 } = require('./models/PostVideo.model.js');
 
+const { createNotificationTable } = require('./models/Notification.model.js') // import notification table
+
 
 // This function creates all tables and it should be ran before starting the server 
 const create_db_tables = async () => {
@@ -31,6 +33,7 @@ const create_db_tables = async () => {
     await PostTaggedPeopleTable();
     await PostVideoLikesTable();
     await PostVideoSharesTable();
+    await createNotificationTable();
 
     return
 }
