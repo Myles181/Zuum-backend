@@ -76,7 +76,15 @@ exports.tokenRequired = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.SECRET_KEY);
+        } catch (err) {
+            if (err.name === "TokenExpiredError") {
+                return res.status(401).json({ error: "Token has expired. Please refresh your token." });
+            }
+            return res.status(401).json({ error: "Invalid token" });
+        }
 
         // Check if the user exists
         const userData = await db.query("SELECT * FROM users WHERE id = $1 AND deleted = false", [decoded.id]); // Fixed placeholder syntax
@@ -91,3 +99,40 @@ exports.tokenRequired = async (req, res, next) => {
         return res.status(401).json({ error: 'Invalid token' });
     }
 };
+
+exports.tokenProfileRequired = async (req, res, next) => {
+    try {
+        // Token extraction looks good
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid token provided' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.SECRET_KEY);
+        } catch (err) {
+            if (err.name === "TokenExpiredError") {
+                return res.status(401).json({ error: "Token has expired. Please refresh your token." });
+            }
+            return res.status(401).json({ error: "Invalid token" });
+        }
+
+
+        // Check if the user exists
+        const userData = await db.query("SELECT * FROM users WHERE id = $1 AND deleted = false", [decoded.id]);
+        if (userData.rows.length === 0) { // Fixed condition - userData is a query result object
+            console.log("User does not exist"); // Fixed typo in message
+            return res.status(404).json({ status: false, error: 'User not found' });
+        }
+        const profileData = await db.query("SELECT * FROM profile WHERE user_id = $1", [decoded.id]);
+
+        req.profile = profileData.rows[0];
+        next();
+    } catch (err) {
+        console.log(err);
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+};
+

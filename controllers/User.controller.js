@@ -6,10 +6,6 @@ const { generateOtp, saveOtp } = require("../utils/otp-utils.js");
 const cloudinary = require('cloudinary').v2;
 
 
-// const SECRET_KEY = process.env.SECRET_KEY;
-
-// console.log(SECRET_KEY)
-
 exports.getProfile = async (req, res) => {
     try {
         const result = await db.query(

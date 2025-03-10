@@ -8,10 +8,11 @@ const createPostVideoTable = async () => {
                 id SERIAL PRIMARY KEY,
                 profile_id INT NOT NULL,
                 caption VARCHAR(255) NOT NULL,
-                video_url VARCHAR(255) NOT NULL,
+                video_upload VARCHAR(255) NOT NULL,
                 public BOOLEAN NOT NULL DEFAULT true,
                 location VARCHAR(255) NOT NULL,
                 likes INT NOT NULL DEFAULT 0,
+                unlikes INT NOT NULL DEFAULT 0,
                 comments INT NOT NULL DEFAULT 0,
                 shares INT NOT NULL DEFAULT 0,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -32,14 +33,16 @@ const PostVideoLikesTable = async () => {
     try {
         const client = await db.connect();
         await client.query(`
-            CREATE TABLE IF NOT EXISTS post_video_likes (
+            CREATE TABLE IF NOT EXISTS post_video_reactions (
                 id SERIAL PRIMARY KEY,
                 post_id INT NOT NULL,
-                post_liker INT NOT NULL,
+                post_reacter_id INT NOT NULL,
+                "like" BOOLEAN DEFAULT false,
+                "unlike" BOOLEAN DEFAULT false,
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id) 
                 REFERENCES post_video(id) ON DELETE CASCADE,
-                CONSTRAINT fk_liker FOREIGN KEY (post_liker) 
+                CONSTRAINT fk_reacter FOREIGN KEY (post_reacter_id)
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
@@ -57,12 +60,12 @@ const PostVideoCommentsTable = async () => {
             CREATE TABLE IF NOT EXISTS post_video_comments (
                 id SERIAL PRIMARY KEY,
                 post_id INT NOT NULL,
-                post_commenter INT NOT NULL,
+                post_commenter_id INT NOT NULL,
                 comment VARCHAR(255) NOT NULL,
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id) 
                 REFERENCES post_video(id) ON DELETE CASCADE,
-                CONSTRAINT fk_commenter FOREIGN KEY (post_commenter) 
+                CONSTRAINT fk_commenter FOREIGN KEY (post_commenter_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
@@ -83,9 +86,11 @@ const PostVideoSharesTable = async () => {
                 post_sharer INT NOT NULL,
                 caption VARCHAR(255) NOT NULL,
 
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
                 CONSTRAINT fk_post FOREIGN KEY (post_id) 
                 REFERENCES post_video(id) ON DELETE CASCADE,
-                CONSTRAINT fk_sharer FOREIGN KEY (post_sharer) 
+                CONSTRAINT fk_sharer FOREIGN KEY (post_sharer_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
@@ -103,11 +108,11 @@ const PostTaggedPeopleTable = async () => {
             CREATE TABLE IF NOT EXISTS post_video_tagged_people (
                 id SERIAL PRIMARY KEY,
                 post_id INT NOT NULL,
-                tagged_person INT NOT NULL,
+                tagged_person_id INT NOT NULL,
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id) 
                 REFERENCES post_video(id) ON DELETE CASCADE,
-                CONSTRAINT fk_tagged FOREIGN KEY (tagged_person) 
+                CONSTRAINT fk_tagged FOREIGN KEY (tagged_person_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
@@ -117,6 +122,7 @@ const PostTaggedPeopleTable = async () => {
         console.error('❌ Error creating table:', err);
     }
 };
+
 
 module.exports = {
     createPostVideoTable,

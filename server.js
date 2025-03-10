@@ -40,8 +40,13 @@ app.use(passport.session());
 // Import and use your routes
 const authRoutes = require('./routes/Auth.routes');
 const userRoutes = require('./routes/User.routes');
+const postAudioRoutes = require('./routes/Post.Audio.routes');
+const cloudinaryWebhook = require("./routes/cloudinaryWebhook");
+
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/audio', postAudioRoutes);
+app.use("/webhook", cloudinaryWebhook);
 
 // Setup Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
