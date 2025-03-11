@@ -28,6 +28,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
     "pg": "^8.13.3",
+    "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
