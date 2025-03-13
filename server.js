@@ -8,7 +8,7 @@ const passport = require('passport');
 const session = require('express-session');
 const cloudinary = require('cloudinary').v2;
 const fileUpload = require('express-fileupload');
-const { Server } = require('socket.io'); // ✅ Import socket.io
+const { Server } = require('socket.io'); // ✅ Import socket.io 
 const http = require('http'); // ✅ Import http
 
 
@@ -61,7 +61,7 @@ app.use("/webhook", cloudinaryWebhook);
 // Setup Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Create new tables if any
+// Create new tables if any 
 create_db_tables();
 
 // ✅ WebSocket logic

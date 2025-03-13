@@ -10,7 +10,7 @@ const { getNotifications, deleteNotification, markNotificationAsRead, sendManual
 
 /**
  * @swagger
- * /notifications/{userId}:
+ * /api/notifications/{userId}:
  *   get:
  *     summary: Get all notifications for a user
  *     tags: [Notifications]
@@ -56,7 +56,7 @@ router.get('/:userId', getNotifications);
 
 /**
  * @swagger
- * /notifications/{notificationId}/read:
+ * /api/notifications/{notificationId}/read:
  *   patch:
  *     summary: Mark notification as read
  *     tags: [Notifications]
@@ -79,7 +79,7 @@ router.patch('/:notificationId/read', markNotificationAsRead);
 
 /**
  * @swagger
- * /notifications/{notificationId}:
+ * /api/notifications/{notificationId}:
  *   delete:
  *     summary: Delete a notification
  *     tags: [Notifications]
@@ -102,7 +102,7 @@ router.delete('/:notificationId', deleteNotification);
 
 /**
  * @swagger
- * /notifications/send:
+ * /api/notifications/send:
  *   post:
  *     summary: Send a manual notification
  *     tags: [Notifications]
@@ -133,4 +133,5 @@ router.delete('/:notificationId', deleteNotification);
  */
 router.post('/send', sendNotificationValidator, sendManualNotification);
 
-module.exports = router;
+module.exports = (io) => router;
+

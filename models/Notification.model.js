@@ -9,6 +9,7 @@ const createNotificationTable = async () => {
                 user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 message TEXT NOT NULL,
                 type VARCHAR(50) NOT NULL,
+                read BOOLEAN DEFAULT false,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);

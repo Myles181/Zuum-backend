@@ -1,6 +1,8 @@
 const { createUserTable, createOtpTable } = require('./models/User.model.js');
 const { createProfileTable } = require('./models/Profile.model.js');
 const { createFollowTable } = require('./models/Followers.model.js');
+const { createAccountTable } = require('./models/Account.model.js');
+const { createSubscriptionTable, createPaymentsTable } = require('./models/Payment.model.js');
 const {
     createPostAudioTable, 
     createPostAudioCommentsTable,
@@ -25,6 +27,7 @@ const create_db_tables = async () => {
     await createProfileTable();
     await createFollowTable();
     await createPostAudioTable();
+    await createAccountTable();
     await createPostAudioCommentsTable();
     await createPostAudioLikesTable();
     await createPostAudioSharesTable();
@@ -34,6 +37,8 @@ const create_db_tables = async () => {
     await PostVideoLikesTable();
     await PostVideoSharesTable();
     await createNotificationTable();
+    await createSubscriptionTable();
+    await createPaymentsTable();
 
     return
 }

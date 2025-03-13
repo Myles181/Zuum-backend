@@ -219,14 +219,14 @@ exports.reactToVideoPost = async (req, res) => {
             `SELECT id, likes, unlikes FROM post_video WHERE id = $1`, 
             [post_id]
         );
-        
+
         if (postResult.rowCount === 0) {
             return res.status(404).json({ 
                 status: false, 
                 message: "Post not found." 
             });
         }
-        
+
         const post = postResult.rows[0];
         const postOwnerId = post.user_id;
         let likesCount = post.likes;
@@ -240,10 +240,10 @@ exports.reactToVideoPost = async (req, res) => {
         );
 
         const hasExistingReaction = reactionResult.rowCount > 0;
-        
+
         if (hasExistingReaction) {
             const reaction = reactionResult.rows[0];
-            
+
             // No change in reaction
             if (reaction.like === like && reaction.unlike === unlike) {
                 return res.status(400).json({ 
@@ -251,7 +251,7 @@ exports.reactToVideoPost = async (req, res) => {
                     message: "Reaction has not changed" 
                 });
             }
-            
+
             // Update the reaction
             await db.query(
                 `UPDATE post_video_reactions 
@@ -259,7 +259,7 @@ exports.reactToVideoPost = async (req, res) => {
                  WHERE post_id = $3 AND post_reacter_id = $4`,
                 [like, unlike, post_id, profileId]
             );
-            
+
             // Update counter based on the change
             if (reaction.like && !like) likesCount--; // Removed like
             if (reaction.unlike && !unlike) unlikesCount--; // Removed unlike
@@ -267,9 +267,9 @@ exports.reactToVideoPost = async (req, res) => {
             if (!reaction.unlike && unlike) unlikesCount++; // Added unlike
 
             notificationMessage = like 
-                ? `Someone changed their reaction to Like on your video post.` 
-                : `Someone changed their reaction to Unlike on your video post.`;
-            
+                ? `liked your video post.` 
+                : `Unliked your video post.`;
+
         } else {
             // Insert new reaction
             await db.query(
@@ -277,16 +277,17 @@ exports.reactToVideoPost = async (req, res) => {
                  VALUES ($1, $2, $3, $4)`,
                 [post_id, profileId, like, unlike]
             );
-            
+
             // Update counter for new reaction
             if (like) likesCount++;
             if (unlike) unlikesCount++;
 
             notificationMessage = like 
-            ? `Someone liked your video post!` 
-            : `Someone disliked your video post.`;
+            ? `liked your video post.` 
+            : `Unliked your video post.`;
         }
-        
+        const profilePic = req.profile.image ? req.profile.image : "https://res.cloudinary.com/dlanhtzbw/image/upload/v1675343188/Telegram%20Clone/no-profile_aknbeq.jpg";
+
         // Update the post counts
         await db.query(
             `UPDATE post_video
@@ -297,16 +298,16 @@ exports.reactToVideoPost = async (req, res) => {
 
           // Send real-time notification to post owner
           if (profileId !== postOwnerId) {
-            sendNotification(postOwnerId, notificationMessage, "reaction");
+            sendNotification(postOwnerId, notificationMessage, profilePic, "reaction");
         }
-        
+
         return res.status(hasExistingReaction ? 200 : 201).json({ 
             status: true, 
             message: hasExistingReaction 
                 ? "Reaction updated successfully!" 
                 : "Reaction added successfully!" 
         });
-        
+
     } catch (error) {
         console.error("Error in reactToVideoPost:", error);
         return res.status(500).json({ status: false, error: error.message });

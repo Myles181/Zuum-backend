@@ -3,6 +3,7 @@ const db = require('../config/db.conf.js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+// const { createVirtualAccount } = require('../helpers/createVirtualAccount')
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const passport = require('passport');
@@ -19,7 +20,7 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password, identity } = req.body;
 
     try {
         // Check if email already exists
@@ -28,13 +29,18 @@ exports.signup = async (req, res) => {
             return res.status(409).json({ error: "Email already exists. Please log in or use a different email." });
         }
 
+        // if Role isn't in roles
+        const validIdentities = ['artist', 'record_label', 'producer'];
+
+        if (!validIdentities.includes(identity)) identity = 'artist';
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create the user
         const new_user = await db.query(
-            "INSERT INTO users (username, email, password, email_verified) VALUES ($1, $2, $3, $4) RETURNING id",
-            [username, email, hashedPassword, false]
+            "INSERT INTO users (username, email, password, email_verified, identity) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            [username, email, hashedPassword, false, identity]
         );
 
         const userId = new_user.rows[0].id;
@@ -44,6 +50,11 @@ exports.signup = async (req, res) => {
             "INSERT INTO profile (user_id) VALUES ($1)",
             [userId]
         )
+
+        const customerCode = 'CUS_'+userId;
+        
+        // Create user account
+        // await createVirtualAccount(customerCode, username);
 
         // Generate and save OTP
         const otp = generateOtp();

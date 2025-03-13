@@ -23,6 +23,9 @@ const router = express.Router();
  *             properties:
  *               username:
  *                 type: string
+ *               identity:
+ *                 type: string
+ *                 description: This is the identity of the user on the platform ('artist', 'record_label', 'producer')
  *               email:
  *                 type: string
  *                 format: email
