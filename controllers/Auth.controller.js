@@ -20,7 +20,7 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, identity } = req.body;
+    let { username, email, password, identity } = req.body;
 
     try {
         // Check if email already exists
@@ -51,7 +51,7 @@ exports.signup = async (req, res) => {
             [userId]
         )
 
-        const customerCode = 'CUS_'+userId;
+        // const customerCode = 'CUS_'+userId;
         
         // Create user account
         // await createVirtualAccount(customerCode, username);
