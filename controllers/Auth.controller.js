@@ -11,7 +11,7 @@ const GoogleStrategy = require('passport-google-oauth2').Strategy;
 
 console.log(SECRET_KEY)
 
-const transporter = require('../helpers/transport.js');
+const { transporter } = require('../helpers/transport.js');
 const { generateOtp, saveOtp, validateOtp } = require("../utils/otp-utils.js");
 
 exports.signup = async (req, res) => {
