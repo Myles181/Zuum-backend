@@ -65,7 +65,7 @@ exports.signup = async (req, res) => {
             from: process.env.EMAIL_USER,
             to: email,
             subject: "Verify Your Email",
-            html: `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 15 minutes.</p>`,
+            html: `<p>Your new OTP code is <strong>${otp}</strong>. It will expire in 15 minutes.</p> <a src="${process.env.FRONTEND_URL}/verifyemail.html">Verification link</a>`,
         };
 
         await transporter.sendMail(mailOptions);
@@ -233,7 +233,7 @@ exports.resendOtp = async (req, res) => {
             from: process.env.EMAIL_USER,
             to: email,
             subject: "Resend OTP Verification Code",
-            html: `<p>Your new OTP code is <strong>${newOtp}</strong>. It will expire in 15 minutes.</p>`,
+            html: `<p>Your new OTP code is <strong>${newOtp}</strong>. It will expire in 15 minutes.</p> <a src="${process.env.FRONTEND_URL}/verifyemail.html">Verification link</a>`,
         };
 
         await transporter.sendMail(mailOptions);
