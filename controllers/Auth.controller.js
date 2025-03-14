@@ -251,14 +251,36 @@ exports.resendOtp = async (req, res) => {
         await saveOtp(email, newOtp);
 
         // Send OTP via Email
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Resend OTP Verification Code",
-            html: `<p>Your new OTP code is <strong>${newOtp}</strong>. It will expire in 15 minutes.</p> <a src="${process.env.FRONTEND_URL}/verifyemail.html">Verification link</a>`,
-        };
+        // Read the verifyemail.html template dynamically
+        const emailTemplatePath = path.join(__dirname, 'templates/verifyemail.html');  // Path to your HTML template
+        fs.readFile(emailTemplatePath, 'utf8', (err, htmlContent) => {
+            if (err) {
+                console.error('Error reading email template:', err);
+                return res.status(500).json({ error: 'Error generating email content.' });
+            }
 
-        await transporter.sendMail(mailOptions);
+            // Replace placeholders with actual values
+            const updatedHtml = htmlContent
+                .replace('{{OTP_CODE}}', newOtp)
+                .replace('{{VERIFY_LINK}}', `${process.env.FRONTEND_URL}/verifyemail.html`);
+
+            // Send OTP via Email with the updated template
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "Verify Your Email",
+                html: updatedHtml,  // Use the updated HTML template
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending email:', error);
+                    return res.status(500).json({ error: 'Error sending email.' });
+                } else {
+                    console.log('Email sent:', info.response);
+                }
+            });
+        });
 
         res.json({ message: "New OTP sent to your email" });
     } catch (error) {
