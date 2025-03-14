@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .logo {
+            width: 150px;
+            margin-bottom: 20px;
+        }
+        .otp {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .verify-button {
+            display: inline-block;
+            background: #007bff;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <img src="https://yourwebsite.com/logo.png" alt="Logo" class="logo"> -->
+        <h2>Email Verification</h2>
+        <p>Your new OTP code is:</p>
+        <p class="otp">{{OTP_CODE}}</p>
+        <p>This code will expire in 15 minutes.</p>
+        <a href="{{VERIFY_LINK}}" class="verify-button">Verify Email</a>
+        <p class="footer">If you didn’t request this, you can ignore this email.</p>
+    </div>
+</body>
+</html>
