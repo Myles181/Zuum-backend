@@ -16,7 +16,7 @@ const app = express();
 
 const server = http.createServer(app); // ✅ Use http server
 const io = new Server(server, {
-  cors: { origin: '*' }, // Allow all origins for now
+  cors: { origin: 'http://localhost:5500/' }, // Allow all origins for now
 });
 
 const PORT = process.env.PORT || 5000;
