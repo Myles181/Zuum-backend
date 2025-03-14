@@ -8,6 +8,8 @@ const { validationResult } = require('express-validator');
 const SECRET_KEY = process.env.SECRET_KEY;
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
+const fs = require('fs');
+const path = require('path');
 
 console.log(SECRET_KEY)
 
