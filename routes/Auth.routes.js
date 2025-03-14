@@ -71,6 +71,8 @@ router.post('/signup', ...signupValidator, signup);
  *         description: Validation errors.
  *       401:
  *         description: Invalid credentials.
+ *       406:
+ *         description: Email is not verified.
  *       500:
  *         description: Server error.
  */
