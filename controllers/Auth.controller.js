@@ -3,9 +3,11 @@ const db = require('../config/db.conf.js');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const nodemailer = require("nodemailer");
 // const { createVirtualAccount } = require('../helpers/createVirtualAccount')
 
 const SECRET_KEY = process.env.SECRET_KEY;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
 const fs = require('fs');
@@ -15,6 +17,7 @@ console.log(SECRET_KEY)
 
 const { transporter } = require('../helpers/transport.js');
 const { generateOtp, saveOtp, validateOtp } = require("../utils/otp-utils.js");
+
 
 exports.signup = async (req, res) => {
     const errors = validationResult(req);
@@ -144,18 +147,23 @@ exports.forgotPassword = async (req, res) => {
 
     try {
         // Find user in the database
-        const { users } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+        const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
 
-        if (users.length === 0) return res.status(404).json({ error: "User not found" });
+        console.log(result.rows); // Debugging
 
-        const user = users[0];
+        // Ensure `rows` is accessed correctly
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const user = result.rows[0];
 
         // Generate a reset token (valid for 15 mins)
         // const resetToken = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: "15m" });
 
         // Generate and save OTP
         const otp = generateOtp();
-        await saveOtp(email, otp);
+        await saveOtp(user.email, otp);
 
         // Send Email
         const transporter = nodemailer.createTransport({
@@ -165,12 +173,15 @@ exports.forgotPassword = async (req, res) => {
                 pass: process.env.EMAIL_PASS
             }
         });
+        console.log(otp);
+
+        const token = Buffer.from(otp).toString("base64");
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: email,
+            to: user.email,
             subject: "Password Reset",
-            html: `<p>Your OTP code is <strong>${otp}</strong>. It will expire in 15 minutes.</p>`,
+            html: `<p>Click <a href="${FRONTEND_URL}/reset?token=${token}">here</a> to reset your password. If you did not request this, please ignore.</p>`
         };
 
 
@@ -179,6 +190,7 @@ exports.forgotPassword = async (req, res) => {
         res.json({ message: "Reset link sent to your email" });
 
     } catch (error) {
+        console.log(error.message);
         res.status(500).json({ error: error.message });
     }
 };
@@ -186,11 +198,13 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({ error: errors.array()[0] });
     }
-    const { email, otp, newPassword } = req.body;
+    const { email, token, newPassword } = req.body;
 
     try {
+        const otp = Buffer.from(token, "base64").toString("utf-8");
+        console.log(otp);
         const { valid, reason, otpId } = await validateOtp(email, otp);
 
         if (!valid) {
@@ -201,7 +215,7 @@ exports.resetPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         // Update password in the database
-        await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, decoded.id]);
+        await db.query("UPDATE users SET password = $1 WHERE email = $2", [hashedPassword, email]);
 
 
         // Mark OTP as used

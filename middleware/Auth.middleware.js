@@ -55,7 +55,7 @@ exports.resetPasswordValidator = [
         .trim()
         .notEmpty().withMessage('Password is required'),
     
-    body('otp')
+    body('token')
         .trim()
         .notEmpty().withMessage('Otp is required')
 ];
