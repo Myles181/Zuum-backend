@@ -144,19 +144,19 @@ exports.forgotPassword = async (req, res) => {
 
     try {
         // Find user in the database
-        const { rows: users } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+        const { users } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
 
         if (users.length === 0) return res.status(404).json({ error: "User not found" });
 
         const user = users[0];
 
         // Generate a reset token (valid for 15 mins)
-        const resetToken = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: "15m" });
+        // const resetToken = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: "15m" });
 
         // Generate and save OTP
         const otp = generateOtp();
         await saveOtp(email, otp);
-        
+
         // Send Email
         const transporter = nodemailer.createTransport({
             service: "gmail",
