@@ -3,7 +3,7 @@ const { tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { createPostAudioValidator, deletePostAudioValidator, deleteCommentOnAudioPostValidator,
         reactToAudioPostValidator, commentToAudioPostValidator, updateCommentOnAudioPostValidator,
         updatePostAudioValidator } = require('../middleware/Post.middleware');
-const { createAudioPost, updateAudioPost, deleteAudioPost, deleteCommentOnAudioPost,
+const { createAudioPost, updateAudioPost, deleteAudioPost, deleteCommentOnAudioPost, getUserAudioPosts,
         reactToAudioPost, commentToAudioPost, updateCommentOnAudioPost, getAudioPosts, getAudioPostById } = require('../controllers/Post.Audio.controller');
 const router = express.Router();
 
@@ -249,36 +249,36 @@ router.post('/comment/create', tokenProfileRequired, ...commentToAudioPostValida
  */
 router.put('/comment/update', tokenProfileRequired, ...updateCommentOnAudioPostValidator, updateCommentOnAudioPost);
 
-// /**
-//  * @swagger
-//  * /api/audio/user:
-//  *   get:
-//  *     summary: Get all audio posts for the authenticated user
-//  *     description: Fetches all audio posts created by the authenticated user.
-//  *     tags:
-//  *       - Audio Posts
-//  *     security:
-//  *       - BearerAuth: []
-//  *     responses:
-//  *       200:
-//  *         description: Successfully retrieved audio posts
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 status:
-//  *                   type: boolean
-//  *                 message:
-//  *                   type: string
-//  *                 posts:
-//  *                   type: array
-//  *                   items:
-//  *                     type: object
-//  *       500:
-//  *         description: Internal Server Error
-//  */
-// router.get('/user', tokenProfileRequired, getUserAudioPosts);
+/**
+ * @swagger
+ * /api/audio/user:
+ *   get:
+ *     summary: Get all audio posts for the authenticated user
+ *     description: Fetches all audio posts created by the authenticated user.
+ *     tags:
+ *       - Audio Posts
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved audio posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Internal Server Error
+ */
+router.get('/user', tokenProfileRequired, getUserAudioPosts);
 
 /**
  * @swagger

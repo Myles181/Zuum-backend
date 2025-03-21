@@ -59,12 +59,14 @@ app.use(passport.session());
 const authRoutes = require('./routes/Auth.routes');
 const userRoutes = require('./routes/User.routes');
 const postAudioRoutes = require('./routes/Post.Audio.routes');
+const postVideoRoutes = require('./routes/Post.Video.routes');
 const cloudinaryWebhook = require("./routes/cloudinaryWebhook");
 const notificationRoutes = require('./routes/Notification.routes')(io);  // ✅ Pass `io`
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/audio', postAudioRoutes);
+app.use('/api/video', postVideoRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/webhook", cloudinaryWebhook);
 
