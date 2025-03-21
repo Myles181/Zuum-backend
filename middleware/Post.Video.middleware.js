@@ -4,7 +4,7 @@ const { body } = require('express-validator');
 exports.createPostVideoValidator = [
     body('caption').isString().trim().notEmpty().withMessage('Caption cannot be empty'),
     body('public').isBoolean().withMessage('Public cannot be empty'),
-    body('location').optional().isString().trim().notEmpty().withMessage('Apple must be a string'),
+    body('location').optional().isString().trim().withMessage('Apple must be a string'),
     body('tagged_people').optional().isString().trim().withMessage('Spotify must be a string'),
 ];
 

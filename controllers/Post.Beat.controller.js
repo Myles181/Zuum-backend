@@ -37,7 +37,7 @@ exports.createBeatPost = async (req, res) => {
             (profile_id, caption, type, audio_upload, cover_photo, apple_music, spotify, audiomark, boomplay, youtube_music)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
             RETURNING *`,
-            [profileId, caption, type || 'music', cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, apple_music, spotify, audiomark, boomplay, youtube_music]
+            [profileId, caption, type || 'music', cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, apple_music || '', spotify || '', audiomark || '', boomplay || '', youtube_music || '']
         );
 
         console.log(postResult);

@@ -4,7 +4,7 @@ const { body } = require('express-validator');
 exports.createPostAudioValidator = [
     body('caption').isString().trim().notEmpty().withMessage('Caption cannot be empty'),
     body('type').isString().trim().notEmpty().withMessage('Type cannot be empty'),
-    body('apple_music').optional().isString().trim().notEmpty().withMessage('Apple must be a string'),
+    body('apple_music').optional().isString().trim().withMessage('Apple must be a string'),
     body('spotify').optional().isString().trim().withMessage('Spotify must be a string'),
     body('audiomark').optional().isString().trim().withMessage('Audiomark must be a string'),
     body('boomplay').optional().isString().trim().withMessage('Boomplay must be a string'),
