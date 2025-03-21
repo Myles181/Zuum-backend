@@ -235,6 +235,39 @@ router.put('/comment/update', tokenProfileRequired, ...updateCommentOnVideoPostV
 
 /**
  * @swagger
+ * /api/video/comment/del:
+ *   delete:
+ *     summary: Delete a comment on video post
+ *     description: Allows a user to delete their video post.
+ *     tags:
+ *       - Video Posts
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               post_id:
+ *                 type: string
+ *                 description: The Id of the Post
+ *     responses:
+ *       200:
+ *         description: Commented deleted successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Commented not found or unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.delete('/comment/del', tokenProfileRequired, ...deleteCommentOnVideoPostValidator, deleteCommentOnVideoPost);
+
+
+/**
+ * @swagger
  * /api/video/user:
  *   get:
  *     summary: Get all video posts for the authenticated user
