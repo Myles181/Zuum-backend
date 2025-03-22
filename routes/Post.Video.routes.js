@@ -250,7 +250,7 @@ router.put('/comment/update', tokenProfileRequired, ...updateCommentOnVideoPostV
  *           schema:
  *             type: object
  *             properties:
- *               post_id:
+ *               comment_id:
  *                 type: string
  *                 description: The Id of the Post
  *     responses:

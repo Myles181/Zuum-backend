@@ -8,6 +8,7 @@ const createFollowTable = async () => {
                 id SERIAL PRIMARY KEY,
                 follower_id INT NOT NULL,
                 following_id INT NOT NULL,
+                active BOOLEAN NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT unique_follow UNIQUE (follower_id, following_id),

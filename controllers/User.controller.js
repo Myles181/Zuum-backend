@@ -15,6 +15,7 @@ exports.getProfile = async (req, res) => {
                 p.image,
                 p.cover_image,
                 p.bio,
+                p.followers,
                 p.created_at,
                 u.username,
                 u.email,
@@ -177,6 +178,91 @@ exports.deleteProfile = async (req, res) => {
             status: true,
             message: "Profile deleted successfully",
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: false,
+            error: error.message,
+        });
+    }
+};
+
+exports.followProfile = async (req, res) => {
+    try {
+        const profile_id = req.profile.id;
+        const { profileId, follow } = req.body;
+
+        console.log(req.profile.id);
+
+        // CHECK IF USER IS TRYING TO FOLLOW HIM SELF
+        if (profileId === profile_id) return res.status(406).json({ message: 'You cannot follow yourself' });
+
+        // CHECK IF THE PROFILE EXISTS
+        const followedProfile = await db.query(`
+            SELECT id, followers FROM profile
+            WHERE id = $1`,
+            [profileId]
+        );
+
+        if (followedProfile.rows.length === 0) {
+            return res.status(404).json({ message: 'Profile ID does not exist' });
+        }
+
+        // CHECK IF THE USER HAS FOLLOWED BEFORE
+        const followExists = await db.query(`
+            SELECT * FROM follow
+            WHERE follower_id = $1 AND following_id = $2`,
+            [profile_id, profileId]
+        );
+
+        if (followExists.rows.length > 0) {
+            // IF THE USER TRIES TO FOLLOW AN ALREADY FOLLOWED ACCOUNT AND VICE VERSA
+            if (followExists.rows[0].active === follow) {
+                return res.status(401).json({ message: 'No changes made' });
+            }
+
+            // UPDATE THE FOLLOW TABLE
+            await db.query(`
+                UPDATE follow
+                SET active = $1
+                WHERE id = $2`,
+                [follow, followExists.rows[0].id]
+            );
+
+            // UPDATE FOLLOWERS COUNT
+            const updatedFollowers = follow ? followedProfile.rows[0].followers + 1 : followedProfile.rows[0].followers - 1;
+
+            await db.query(`
+                UPDATE profile
+                SET followers = $1
+                WHERE id = $2`,
+                [updatedFollowers, profileId]
+            );
+
+        } else {
+            // IF THE USER TRIED TO UNFOLLOW AN ACCOUNT THEY HAVEN'T FOLLOWED
+            if (!follow) {
+                return res.status(200).json({ message: 'You have not followed this account' });
+            }
+
+            // STORE THE FOLLOW HISTORY
+            await db.query(`
+                INSERT INTO follow (follower_id, following_id, active)
+                VALUES ($1, $2, $3)`,
+                [profile_id, profileId, true]
+            );
+
+            // UPDATE FOLLOWERS COUNT
+            await db.query(`
+                UPDATE profile
+                SET followers = $1
+                WHERE id = $2`,
+                [followedProfile.rows[0].followers + 1, profileId]
+            );
+        }
+
+        return res.status(200).json({ message: 'Follow action successful' });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({

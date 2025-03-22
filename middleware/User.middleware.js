@@ -7,3 +7,8 @@ exports.updateProfileValidator = [
     body('phone_number').optional().isString().trim().withMessage('Invalid phone number'),
     body('bio').optional().isString().trim().withMessage('Bio must be a string'),
 ];
+
+exports.followProfileValidator = [
+    body('follow').isBoolean().withMessage('Follow user'),
+    body('profileId').isString().withMessage('Followed profile Id'),
+]

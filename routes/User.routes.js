@@ -1,7 +1,7 @@
 const express = require('express');
-const { tokenRequired } = require('../middleware/Auth.middleware')
-const { updateProfileValidator } = require('../middleware/User.middleware');
-const { getProfile, updateProfile, deleteProfile } = require('../controllers/User.controller');
+const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
+const { updateProfileValidator, followProfileValidator } = require('../middleware/User.middleware');
+const { getProfile, updateProfile, deleteProfile, followProfile } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -79,7 +79,6 @@ const router = express.Router();
  *         description: Server error
  */
 router.get('/profile', tokenRequired, getProfile);
-
 
 /**
  * @swagger
@@ -174,4 +173,93 @@ router.put('/profile', tokenRequired, ...updateProfileValidator, updateProfile);
  */
 router.delete('/profile', tokenRequired, deleteProfile);
 
+/**
+ * @swagger
+ * /api/user/follow:
+ *   post:
+ *     summary: Follow or unfollow a user profile
+ *     description: Allows an authenticated user to follow or unfollow another user profile.
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileId:
+ *                 type: integer
+ *                 description: The ID of the profile to follow or unfollow.
+ *                 example: 123
+ *               follow:
+ *                 type: boolean
+ *                 description: Set to true to follow, false to unfollow.
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Follow action successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Follow action successful"
+ *       401:
+ *         description: No changes made (already followed/unfollowed)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "No changes made"
+ *       404:
+ *         description: Profile ID does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Profile ID does not exist"
+ *       406:
+ *         description: User cannot follow themselves
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "You cannot follow yourself"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/follow', tokenProfileRequired, ...followProfileValidator, followProfile);
+
+
 module.exports = router;
+
+

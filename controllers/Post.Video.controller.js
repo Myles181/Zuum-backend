@@ -20,7 +20,9 @@ exports.createVideoPost = async (req, res) => {
         // 2️⃣ Extract video post details from request
         const { caption, public, location, tagged_people } = req.body;
 
-        let cloud_video_upload;
+        // console.log(req.body);
+
+        let cloud_video_upload, taggedPeople;
 
         // Handle file uploads to Cloudinary
         if (req.files && req.files.video_upload) {
@@ -46,24 +48,45 @@ exports.createVideoPost = async (req, res) => {
             [profileId, caption, public, cloud_video_upload.secure_url, location]
         );
 
+        if (tagged_people && !Array.isArray(tagged_people)) {
+            taggedPeople = tagged_people.split(",").map(Number);
+        } else {
+            taggedPeople = tagged_people;
+        }
+
+        console.log(taggedPeople);
+
         // 🔹 Verify tagged_people exist before inserting
-        if (tagged_people && Array.isArray(tagged_people) && tagged_people.length > 0) {
+        if (taggedPeople && Array.isArray(taggedPeople) && taggedPeople.length > 0) {
+            // Convert to an array of numbers (in case they are strings)
+            const TaggedPeopleIds = taggedPeople.map(Number);
+            const taggedPeopleIds = TaggedPeopleIds.filter(id => id !== profileId);
+
+            // console.log(taggedPeopleIds);
+        
             // Get only valid profile IDs that exist
             const validProfiles = await db.query(
                 `SELECT id FROM profile WHERE id = ANY($1::int[])`,
-                [tagged_people]
+                [taggedPeopleIds]
             );
 
+            console.log("Valid Profiles: ", validProfiles);
+        
             const existingProfileIds = validProfiles.rows.map(row => row.id);
-
+            console.log("Existing profiles", existingProfileIds);
+        
             if (existingProfileIds.length > 0) {
-                const values = existingProfileIds.map(taggedId => `(${postId}, ${taggedId})`).join(",");
-                
+                // Use parameterized query for security
+                const values = existingProfileIds.map((_, index) => `($1, $${index + 2})`).join(",");
+                console.log(postResult);
+                const queryParams = [postResult.rows[0].id, ...existingProfileIds];
+        
                 await db.query(
-                    `INSERT INTO post_video_tagged_people (post_id, tagged_person_id) VALUES ${values}`
+                    `INSERT INTO post_video_tagged_people (post_id, tagged_person_id) VALUES ${values}`,
+                    queryParams
                 );
             }
-        }
+        }        
 
         console.log(postResult);
         res.status(201).json({ 
@@ -173,11 +196,12 @@ exports.deleteVideoPost = async (req, res) => {
 
 
         // 1️⃣ Check if post exists
-        const postExists = await db.query(`SELECT id FROM post_video WHERE id = $1`, [post_id]);
+        const postExists = await db.query(`SELECT id, profile_id FROM post_video WHERE id = $1`, [post_id]);
         if (postExists.rowCount === 0) {
             return res.status(404).json({ status: false, message: "Post not found." });
         }
-        if (postExists[0].profile_id !== profileId) {
+        if (postExists.rows[0].profile_id !== profileId) {
+            // console.log(postExists);
             return res.status(404).json({ status: false, message: "You do not have permission" });
         }
 
@@ -462,7 +486,7 @@ exports.shareVideoPost = async (req, res) => {
     }
 
     try {
-        const profileId = req.profie.id;
+        const profileId = req.profile.id;
 
         const { post_id, content } = req.body;
 
@@ -719,10 +743,12 @@ exports.getVideoPosts = async (req, res) => {
             FROM post_video p
             JOIN profile pf ON p.profile_id = pf.id
             JOIN users u ON pf.user_id = u.id
+            WHERE p.public = true
             ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2;`,
             [limit, offset]
         );
+        
 
         // Extract total count from the first row
         const totalPosts = postsResult.rows.length > 0 ? parseInt(postsResult.rows[0].total_count) : 0;
