@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 5000;
 app.use(morgan("dev")); // Logs HTTP requests
 
 const corsOptions = {
-  origin: ['https://zuum-backend-qs8x.onrender.com', 'http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173'], // Allowed origins
+  origin: ['https://zuum-backend-qs8x.onrender.com', 'http://localhost:3000', 'http://localhost:5000', 'http://localhost:5173', 'https://zuum-frontend.onrender.com', 'https://zuum-frontend.vercel.app'], // Allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTION'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Allow cookies if needed
