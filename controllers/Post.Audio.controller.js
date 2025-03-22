@@ -681,7 +681,6 @@ exports.getAudioPosts = async (req, res) => {
             FROM post_audio p
             JOIN profile pf ON p.profile_id = pf.id
             JOIN users u ON pf.user_id = u.id
-            WHERE p.public = true
             ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2;`,
             [limit, offset]
