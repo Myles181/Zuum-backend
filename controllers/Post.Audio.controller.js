@@ -424,7 +424,7 @@ exports.shareAudioPost = async (req, res) => {
     }
 
     try {
-        const profileId = req.profie.id;
+        const profileId = req.profile.id;
 
         const { post_id, content } = req.body;
 
@@ -438,8 +438,8 @@ exports.shareAudioPost = async (req, res) => {
             return res.status(404).json({ status: false, message: "Post not found." });
         }
 
-        const post = postResult.rows[0];
-        let shareCount = post.shares;
+        const post = postExists.rows[0];
+        let shareCount = post.shares || 0;
 
         // 3️⃣ Insert the comment
         await db.query(
@@ -487,7 +487,7 @@ exports.updateSharedAudioPost = async (req, res) => {
 
         // 3️⃣ Update the comment
         await db.query(
-            `UPDATE post_audio_share SET content = $1 WHERE id = $2`,
+            `UPDATE post_audio_share SET caption = $1 WHERE id = $2`,
             [content, share_id]
         );
 
