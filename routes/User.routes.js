@@ -1,7 +1,7 @@
 const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator } = require('../middleware/User.middleware');
-const { getProfile, updateProfile, deleteProfile, followProfile } = require('../controllers/User.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -55,9 +55,6 @@ const router = express.Router();
  *                 is_admin:
  *                   type: boolean
  *                   description: Whether user is an admin
- *                 deactivated:
- *                   type: boolean
- *                   description: Whether user account is deactivated
  *               example:
  *                 id: 1
  *                 image: "https://example.com/image.jpg"
@@ -69,7 +66,6 @@ const router = express.Router();
  *                 identity: "artist"
  *                 email_verified: true
  *                 is_admin: false
- *                 deactivated: true,
  *                 created_at: "2025-03-07T12:00:00Z"
  *       401:
  *         description: Unauthorized - Invalid or missing token
@@ -78,7 +74,88 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get('/profile', tokenRequired, getProfile);
+router.get('/profile', tokenProfileRequired, getProfile);
+
+
+/**
+ * @swagger
+ * /api/user/profile/{id}:
+ *   get:
+ *     summary: Get user profile by id
+ *     tags: [Profile]
+ *     description: Retrieves the profile information for the authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the user to retrieve notifications for
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: Profile ID
+ *                 image:
+ *                   type: string
+ *                   description: Profile image URL
+ *                 cover_image:
+ *                   type: string
+ *                   description: Cover image URL
+ *                 bio:
+ *                   type: string
+ *                   description: User biography
+ *                 created_at:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Profile creation timestamp
+ *                 username:
+ *                   type: string
+ *                   description: User's username
+ *                 email:
+ *                   type: string
+ *                   description: User's email
+ *                 phone_number:
+ *                   type: string
+ *                   description: User's phone number
+ *                 identity:
+ *                   type: string
+ *                   description: User's identity type
+ *                 email_verified:
+ *                   type: boolean
+ *                   description: Whether email is verified
+ *                 is_admin:
+ *                   type: boolean
+ *                   description: Whether user is an admin
+ *               example:
+ *                 id: 1
+ *                 image: "https://example.com/image.jpg"
+ *                 cover_image: "https://example.com/cover.jpg"
+ *                 bio: "Software developer"
+ *                 username: "Myles"
+ *                 email: "example@gmail.com"
+ *                 phone_number: 08049387362
+ *                 identity: "artist"
+ *                 email_verified: true
+ *                 is_admin: false
+ *                 created_at: "2025-03-07T12:00:00Z"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       404:
+ *         description: Profile not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/profile/:id', tokenProfileRequired, getProfileById);
+
 
 /**
  * @swagger

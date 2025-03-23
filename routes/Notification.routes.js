@@ -2,25 +2,19 @@ const express = require('express');
 const router = express.Router();
 
 // Import Middleware
-const { sendNotificationValidator } = require('../middleware/Notification.middleware');
+// const { sendNotificationValidator } = require('../middleware/Notification.middleware');
 
 // Import Controllers
 const { getNotifications, deleteNotification, markNotificationAsRead, sendManualNotification} = require('../controllers/Notification.controller');
+const { tokenProfileRequired } = require('../middleware/Auth.middleware');
 
 
 /**
  * @swagger
- * /api/notifications/{userId}:
+ * /api/notifications:
  *   get:
  *     summary: Get all notifications for a user
  *     tags: [Notifications]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID of the user to retrieve notifications for
  *     responses:
  *       200:
  *         description: List of notifications
@@ -52,7 +46,7 @@ const { getNotifications, deleteNotification, markNotificationAsRead, sendManual
  *       500:
  *         description: Server error
  */
-router.get('/:userId', getNotifications);
+router.get('', tokenProfileRequired, getNotifications);
 
 /**
  * @swagger
@@ -75,7 +69,7 @@ router.get('/:userId', getNotifications);
  *       500:
  *         description: Server error
  */
-router.patch('/:notificationId/read', markNotificationAsRead);
+router.patch('/:notificationId/read', tokenProfileRequired, markNotificationAsRead);
 
 /**
  * @swagger
@@ -98,40 +92,43 @@ router.patch('/:notificationId/read', markNotificationAsRead);
  *       500:
  *         description: Server error
  */
-router.delete('/:notificationId', deleteNotification);
+router.delete('/:notificationId', tokenProfileRequired, deleteNotification);
 
-/**
- * @swagger
- * /api/notifications/send:
- *   post:
- *     summary: Send a manual notification
- *     tags: [Notifications]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userId:
- *                 type: integer
- *                 description: ID of the user receiving the notification
- *               message:
- *                 type: string
- *                 description: The notification message
- *               type:
- *                 type: string
- *                 enum: [like, comment, follow, system]
- *                 description: Type of notification
- *     responses:
- *       200:
- *         description: Notification sent successfully
- *       400:
- *         description: Validation error
- *       500:
- *         description: Server error
- */
-router.post('/send', sendNotificationValidator, sendManualNotification);
+// /**
+//  * @swagger
+//  * /api/notifications/send:
+//  *   post:
+//  *     summary: Send a manual notification
+//  *     tags: [Notifications]
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json: 
+//  *           schema: 
+//  *             type: object
+//  *             properties: 
+//  *               userId: 
+//  *                 type: integer
+//  *                 description: ID of the user receiving the notification
+//  *               message: 
+//  *                 type: string
+//  *                 description: The notification message
+//  *               type: 
+//  *                 type: string
+//  *                 enum: [like, comment, follow, system]
+//  *                 description: Type of notification
+//  *     responses: 
+//  *       200: 
+//  *         description: Notification sent successfully
+//  *       400: 
+//  *         description: Validation error
+//  *       500: 
+//  *         description: Server error
+//  */
+// router.post('/send', sendNotificationValidator, sendManualNotification);
+
+
+
 
 module.exports = (io) => router;
 

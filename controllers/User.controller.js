@@ -22,13 +22,12 @@ exports.getProfile = async (req, res) => {
                 u.phone_number,
                 u.identity,
                 u.email_verified,
-                u.is_admin,
-                u.deactivated
+                u.is_admin
             FROM profile p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE p.user_id = $1
+            WHERE p.id = $1 AND u.deactivated = false
             `,
-            [req.user.id]);
+            [req.profile.id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: "Profile not found" });
@@ -40,6 +39,47 @@ exports.getProfile = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+
+exports.getProfileById = async (req, res) => {
+    try {
+        const profile_id = req.params.id; // Switch to URL param
+
+        if (!profile_id) {
+            return res.status(400).json({ error: "Profile ID is required" });
+        }
+
+        const result = await db.query(
+            `
+            SELECT 
+                p.id,
+                p.image,
+                p.cover_image,
+                p.bio,
+                p.followers,
+                p.created_at,
+                u.username,
+                u.email,
+                u.phone_number,
+                u.identity,
+                u.email_verified
+            FROM profile p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.id = $1 AND u.deactivated = false
+            `,
+            [profile_id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+
+        res.status(200).json({ data: result.rows[0] });
+
+    } catch (error) {
+        console.error("Error in getProfileById:", error); // Log for debugging
+        res.status(500).json({ error: error.message });
+    }
+};
 
 exports.updateProfile = async (req, res) => {
     const errors = validationResult(req);
@@ -238,6 +278,16 @@ exports.followProfile = async (req, res) => {
                 WHERE id = $2`,
                 [updatedFollowers, profileId]
             );
+            const notificationMessage = follow
+                ? "You have a new follower"
+                : "Someone unfollowed you";
+            const notificationType = follow ? "FOLLOW" : "UNFOLLOW";
+
+            await db.query(`
+                INSERT INTO notifications (user_id, message, type, action_user_id)
+                VALUES ($1, $2, $3, $4)`,
+                [profileId, notificationMessage, notificationType, profile_id]
+            );
 
         } else {
             // IF THE USER TRIED TO UNFOLLOW AN ACCOUNT THEY HAVEN'T FOLLOWED
@@ -259,6 +309,13 @@ exports.followProfile = async (req, res) => {
                 WHERE id = $2`,
                 [followedProfile.rows[0].followers + 1, profileId]
             );
+
+            // STORE FOLLOW NOTIFICATION
+            await db.query(`
+                INSERT INTO notifications (user_id, message, type, action_user_id)
+                VALUES ($1, $2, $3, $4)`,
+                [profileId, "You have a new follower", "FOLLOW", profile_id]
+            );
         }
 
         return res.status(200).json({ message: 'Follow action successful' });
@@ -271,3 +328,5 @@ exports.followProfile = async (req, res) => {
         });
     }
 };
+
+

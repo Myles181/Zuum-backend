@@ -6,7 +6,8 @@ const createNotificationTable = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
-                user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id INT NOT NULL REFERENCES profile(id) ON DELETE CASCADE,
+                action_user_id INT NOT NULL REFERENCES profile(id) ON DELETE CASCADE,
                 message TEXT NOT NULL,
                 type VARCHAR(50) NOT NULL,
                 read BOOLEAN DEFAULT false,

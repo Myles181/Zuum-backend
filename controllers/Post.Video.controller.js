@@ -226,29 +226,24 @@ exports.reactToVideoPost = async (req, res) => {
         console.log(errors);
         return res.status(400).json({ errors: errors.array() });
     }
+
     try {
         const profileId = req.profile.id;
         const { post_id, like, unlike } = req.body;
 
-        // Ensure like and unlike are not both true or false
+        // Ensure like and unlike aren’t equal
         if (like === unlike) {
-            return res.status(400).json({
-                status: false,
-                message: "Like and unlike cannot be equal."
-            });
+            return res.status(400).json({ message: "Like and unlike cannot be equal" });
         }
 
-        // Check if the post exists and get current counts
+        // Check if post exists
         const postResult = await db.query(
-            `SELECT id, likes, unlikes FROM post_video WHERE id = $1`, 
+            `SELECT id, likes, unlikes, user_id FROM post_video WHERE id = $1`,
             [post_id]
         );
 
         if (postResult.rowCount === 0) {
-            return res.status(404).json({ 
-                status: false, 
-                message: "Post not found." 
-            });
+            return res.status(404).json({ message: "Post not found" });
         }
 
         const post = postResult.rows[0];
@@ -256,7 +251,7 @@ exports.reactToVideoPost = async (req, res) => {
         let likesCount = post.likes;
         let unlikesCount = post.unlikes;
 
-        // Check if user already reacted
+        // Check existing reaction
         const reactionResult = await db.query(
             `SELECT id, "like", "unlike" FROM post_video_reactions 
              WHERE post_id = $1 AND post_reacter_id = $2`,
@@ -264,19 +259,17 @@ exports.reactToVideoPost = async (req, res) => {
         );
 
         const hasExistingReaction = reactionResult.rowCount > 0;
+        let notificationMessage = null;
 
         if (hasExistingReaction) {
             const reaction = reactionResult.rows[0];
 
-            // No change in reaction
+            // No change, bail early
             if (reaction.like === like && reaction.unlike === unlike) {
-                return res.status(400).json({ 
-                    status: false, 
-                    message: "Reaction has not changed" 
-                });
+                return res.status(400).json({ message: "Reaction has not changed" });
             }
 
-            // Update the reaction
+            // Update reaction
             await db.query(
                 `UPDATE post_video_reactions 
                  SET like = $1, unlike = $2 
@@ -284,35 +277,39 @@ exports.reactToVideoPost = async (req, res) => {
                 [like, unlike, post_id, profileId]
             );
 
-            // Update counter based on the change
-            if (reaction.like && !like) likesCount--; // Removed like
-            if (reaction.unlike && !unlike) unlikesCount--; // Removed unlike
-            if (!reaction.like && like) likesCount++; // Added like
-            if (!reaction.unlike && unlike) unlikesCount++; // Added unlike
-
-            notificationMessage = like 
-                ? `liked your video post.` 
-                : `Unliked your video post.`;
+            // Adjust counts and set notification
+            if (reaction.like && !like) {
+                likesCount--;
+                if (unlike) notificationMessage = "Someone unliked your video post"; // Like → Unlike
+            } else if (reaction.unlike && !unlike) {
+                unlikesCount--;
+                if (like) notificationMessage = "Someone liked your video post"; // Unlike → Like
+            } else if (!reaction.like && like) {
+                likesCount++;
+                notificationMessage = "Someone liked your video post"; // Off → Like
+            } else if (!reaction.unlike && unlike) {
+                unlikesCount++;
+                notificationMessage = "Someone unliked your video post"; // Off → Unlike
+            }
 
         } else {
-            // Insert new reaction
+            // New reaction
             await db.query(
                 `INSERT INTO post_video_reactions (post_id, post_reacter_id, "like", "unlike")
                  VALUES ($1, $2, $3, $4)`,
                 [post_id, profileId, like, unlike]
             );
 
-            // Update counter for new reaction
-            if (like) likesCount++;
-            if (unlike) unlikesCount++;
-
-            notificationMessage = like 
-            ? `liked your video post.` 
-            : `Unliked your video post.`;
+            if (like) {
+                likesCount++;
+                notificationMessage = "Someone liked your video post";
+            } else if (unlike) {
+                unlikesCount++;
+                notificationMessage = "Someone unliked your video post";
+            }
         }
-        const profilePic = req.profile.image ? req.profile.image : "https://res.cloudinary.com/dlanhtzbw/image/upload/v1675343188/Telegram%20Clone/no-profile_aknbeq.jpg";
 
-        // Update the post counts
+        // Update post counts
         await db.query(
             `UPDATE post_video
              SET likes = $1, unlikes = $2
@@ -320,21 +317,27 @@ exports.reactToVideoPost = async (req, res) => {
             [likesCount, unlikesCount, post_id]
         );
 
-          // Send real-time notification to post owner
-          if (profileId !== postOwnerId) {
+        // Send real-time notification to post owner if there’s a change
+        const profilePic = req.profile.image || "https://res.cloudinary.com/dlanhtzbw/image/upload/v1675343188/Telegram%20Clone/no-profile_aknbeq.jpg";
+        if (notificationMessage && profileId !== postOwnerId) {
             sendNotification(postOwnerId, notificationMessage, profilePic, "reaction");
+            // Also store in DB for consistency with audio
+            await db.query(
+                `INSERT INTO notifications (user_id, message, type, action_user_id)
+                 VALUES ($1, $2, $3, $4)`,
+                [postOwnerId, notificationMessage, "REACTION", profileId]
+            );
         }
 
-        return res.status(hasExistingReaction ? 200 : 201).json({ 
-            status: true, 
-            message: hasExistingReaction 
-                ? "Reaction updated successfully!" 
-                : "Reaction added successfully!" 
+        return res.status(hasExistingReaction ? 200 : 201).json({
+            message: hasExistingReaction
+                ? "Reaction updated successfully"
+                : "Reaction added successfully"
         });
 
     } catch (error) {
         console.error("Error in reactToVideoPost:", error);
-        return res.status(500).json({ status: false, error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -352,7 +355,7 @@ exports.commentToVideoPost = async (req, res) => {
 
         // 2️⃣ Check if the post exists
         const postResult = await db.query(
-            `SELECT id, comments FROM post_video WHERE id = $1`,
+            `SELECT id, comments, profile_id FROM post_video WHERE id = $1`,
             [post_id]
         );
 
@@ -375,6 +378,12 @@ exports.commentToVideoPost = async (req, res) => {
             SET comments = $1
             WHERE id = $2`,
             [commentCount+1, post_id]
+        );
+
+        await db.query(`
+            INSERT INTO notifications (user_id, message, type, action_user_id)
+            VALUES ($1, $2, $3, $4)`,
+            [postResult.rows[0].profile_id, "New Comment", "COMMENT", profileId]
         );
 
         return res.status(201).json({ status: true, message: "Comment added successfully!" });
@@ -492,7 +501,7 @@ exports.shareVideoPost = async (req, res) => {
 
         // 2️⃣ Check if the post exists
         const postExists = await db.query(
-            `SELECT id FROM post_video WHERE id = $1`,
+            `SELECT id, profile_id FROM post_video WHERE id = $1`,
             [post_id]
         );
 
@@ -515,6 +524,12 @@ exports.shareVideoPost = async (req, res) => {
             SET shares = $1
             WHERE id = $2`,
             [shareCount+1, post_id]
+        );
+
+        await db.query(`
+            INSERT INTO notifications (user_id, message, type, action_user_id)
+            VALUES ($1, $2, $3, $4)`,
+            [postExists.rows[0].profile_id, "New Share", "SHARE", profileId]
         );
 
         return res.status(201).json({ status: true, message: "Shared successfully!" });
