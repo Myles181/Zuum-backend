@@ -602,7 +602,7 @@ exports.getAudioPostById = async (req, res) => {
              FROM post_audio p
              JOIN profile pr ON p.profile_id = pr.id
              JOIN users u ON pr.user_id = u.id
-             WHERE p.id = $1 AND p.public = true`,
+             WHERE p.id = $1`,
             [postId]
         );
         
