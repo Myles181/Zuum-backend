@@ -15,14 +15,27 @@ exports.getProfile = async (req, res) => {
                 p.image,
                 p.cover_image,
                 p.bio,
-                p.followers,
+                COALESCE(p.followers, 0) AS followers,
+                COALESCE(p.following, 0) AS following,
                 p.created_at,
                 u.username,
                 u.email,
                 u.phone_number,
                 u.identity,
                 u.email_verified,
-                u.is_admin
+                u.is_admin,
+                COALESCE(
+                    (SELECT array_agg(follower_id)
+                     FROM follow 
+                     WHERE following_id = p.id AND active = true),
+                    ARRAY[]::INTEGER[]
+                ) AS followers_list,
+                COALESCE(
+                    (SELECT array_agg(following_id)
+                     FROM follow 
+                     WHERE follower_id = p.id AND active = true),
+                    ARRAY[]::INTEGER[]
+                ) AS following_list
             FROM profile p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.id = $1 AND u.deactivated = false
@@ -55,13 +68,26 @@ exports.getProfileById = async (req, res) => {
                 p.image,
                 p.cover_image,
                 p.bio,
-                p.followers,
+                COALESCE(p.followers, 0) AS followers,
+                COALESCE(p.following, 0) AS following,
                 p.created_at,
                 u.username,
                 u.email,
                 u.phone_number,
                 u.identity,
-                u.email_verified
+                u.email_verified,
+                COALESCE(
+                    (SELECT array_agg(follower_id)
+                     FROM follow 
+                     WHERE following_id = p.id AND active = true),
+                    ARRAY[]::INTEGER[]
+                ) AS followers_list,
+                COALESCE(
+                    (SELECT array_agg(following_id)
+                     FROM follow 
+                     WHERE follower_id = p.id AND active = true),
+                    ARRAY[]::INTEGER[]
+                ) AS following_list
             FROM profile p
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.id = $1 AND u.deactivated = false
@@ -239,7 +265,7 @@ exports.followProfile = async (req, res) => {
 
         // CHECK IF THE PROFILE EXISTS
         const followedProfile = await db.query(`
-            SELECT id, followers FROM profile
+            SELECT id, followers, following FROM profile
             WHERE id = $1`,
             [profileId]
         );
@@ -271,22 +297,41 @@ exports.followProfile = async (req, res) => {
 
             // UPDATE FOLLOWERS COUNT
             const updatedFollowers = follow ? followedProfile.rows[0].followers + 1 : followedProfile.rows[0].followers - 1;
+            const updatedFollowing = follow ? req.profile.following + 1 : req.profile.following - 1;
 
+            // Update the followed profile followers count
             await db.query(`
                 UPDATE profile
                 SET followers = $1
                 WHERE id = $2`,
                 [updatedFollowers, profileId]
             );
+
+            // Update the user following count
+            await db.query(`
+                UPDATE profile
+                SET following = $1
+                WHERE id = $2`,
+                [updatedFollowing, profile_id]
+            );
+
+            // Get the username
+            const user = await db.query(`
+                SELECT username FROM users
+                WHERE id = $1`,
+                [req.profile.user_id]
+            );
+
+            // Update the notifcations
             const notificationMessage = follow
-                ? "You have a new follower"
-                : "Someone unfollowed you";
+                ? `${user.rows[0].username} follows you`
+                : `${user.rows[0].username} unfollowed you`;
             const notificationType = follow ? "FOLLOW" : "UNFOLLOW";
 
             await db.query(`
-                INSERT INTO notifications (user_id, message, type, action_user_id)
-                VALUES ($1, $2, $3, $4)`,
-                [profileId, notificationMessage, notificationType, profile_id]
+                INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image)
+                VALUES ($1, $2, $3, $4, $5)`,
+                [profileId, notificationMessage, notificationType, profile_id, req.profile.image]
             );
 
         } else {
@@ -303,18 +348,32 @@ exports.followProfile = async (req, res) => {
             );
 
             // UPDATE FOLLOWERS COUNT
-            await db.query(`
-                UPDATE profile
-                SET followers = $1
-                WHERE id = $2`,
-                [followedProfile.rows[0].followers + 1, profileId]
+            await db.query(
+                `UPDATE profile 
+                 SET followers = followers + 1 
+                 WHERE id = $1`,
+                [profileId]
+            );
+
+            await db.query(
+                `UPDATE profile 
+                 SET following = following + 1 
+                 WHERE id = $1`,
+                [profile_id]
+            );
+
+            // Get the username
+            const user = await db.query(`
+                SELECT username FROM users
+                WHERE id = $1`,
+                [req.profile.user_id]
             );
 
             // STORE FOLLOW NOTIFICATION
             await db.query(`
-                INSERT INTO notifications (user_id, message, type, action_user_id)
-                VALUES ($1, $2, $3, $4)`,
-                [profileId, "You have a new follower", "FOLLOW", profile_id]
+                INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image)
+                VALUES ($1, $2, $3, $4, $5)`,
+                [profileId, `${user.rows[0].username} follows you`, "FOLLOW", profile_id, req.profile.image]
             );
         }
 

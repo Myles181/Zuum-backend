@@ -3,7 +3,9 @@ const { tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { createPostVideoValidator, updatePostVideoValidator, deletePostVideoValidator, reactToVideoPostValidator, commentToVideoPostValidator, 
     updateCommentOnVideoPostValidator, deleteCommentOnVideoPostValidator, shareVideoPostValidator, updateSharedVideoPostValidator, deleteSharedVideoPostValidator } = require('../middleware/Post.Video.middleware');
 const { createVideoPost, updateVideoPost, deleteVideoPost, deleteCommentOnVideoPost,
-        reactToVideoPost, commentToVideoPost, updateCommentOnVideoPost, getVideoPosts, getVideoPostById, getUserVideoPosts } = require('../controllers/Post.Video.controller');
+        reactToVideoPost, commentToVideoPost, updateCommentOnVideoPost, getVideoPosts, getVideoPostById, getUserVideoPosts,
+        deleteSharedVideoPost, updateSharedVideoPost } = require('../controllers/Post.Video.controller');
+const { shareAudioPost } = require('../controllers/Post.Audio.controller');
 const router = express.Router();
 
 // console.log("tokenProfileRequired:", tokenProfileRequired);
@@ -381,6 +383,108 @@ router.get('/:postId', tokenProfileRequired, getVideoPostById);
  *         description: Internal Server Error
  */
 router.get('', tokenProfileRequired, getVideoPosts);
+
+
+/**
+ * @swagger
+ * /api/video/share/create:
+ *   post:
+ *     summary: Share an audio post
+ *     description: Allows a user to share an audio post.
+ *     tags:
+ *       - Audio Posts
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               post_id:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Share successful
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/share/create', tokenProfileRequired, ...shareVideoPostValidator, shareAudioPost);
+
+/**
+ * @swagger
+ * /api/video/share/update:
+ *   put:
+ *     summary: Update a shared audio post
+ *     description: Allows a user to edit their shared audio post.
+ *     tags:
+ *       - Audio Posts
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               share_id:
+ *                 type: string
+ *                 description: The Id of the SharedPost
+ *               content:
+ *                 type: string
+ *                 description: The New content the user edited it to
+ *     responses:
+ *       200:
+ *         description: Share successful
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Shared Post not found or unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.put('/share/update', tokenProfileRequired, ...updateSharedVideoPostValidator, updateSharedVideoPost);
+
+
+/**
+ * @swagger
+ * /api/video/share/del:
+ *   delete:
+ *     summary: Delete a shared video post
+ *     description: Allows a user to delete their video post.
+ *     tags:
+ *       - Audio Posts
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               share_id:
+ *                 type: string
+ *                 description: The Id of the Post
+ *     responses:
+ *       200:
+ *         description: Share POst deleted successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Shared Post not found or unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.delete('/share/del', tokenProfileRequired, ...deleteSharedVideoPostValidator, deleteSharedVideoPost);
+
+
 
 
 module.exports = router;
