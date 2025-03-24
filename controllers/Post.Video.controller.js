@@ -4,7 +4,7 @@ const { validationResult } = require('express-validator');
 // const { transporter } = require('../helpers/transport.js');
 const cloudinary = require('cloudinary').v2;
 // const ffmpeg = require("fluent-ffmpeg");
-const { sendNotification } = require("../helpers/notification.service.js"); // Import sendNotification. To be used for emitting notifications
+// const { sendNotification } = require("../helpers/notification.service.js"); // Import sendNotification. To be used for emitting notifications
 
 
 
@@ -238,7 +238,7 @@ exports.reactToVideoPost = async (req, res) => {
 
         // Check if post exists
         const postResult = await db.query(
-            `SELECT id, likes, unlikes, user_id FROM post_video WHERE id = $1`,
+            `SELECT id, likes, unlikes, profile_id FROM post_video WHERE id = $1`,
             [post_id]
         );
 
@@ -247,7 +247,7 @@ exports.reactToVideoPost = async (req, res) => {
         }
 
         const post = postResult.rows[0];
-        const postOwnerId = post.user_id;
+        const postOwnerId = post.profile_id;
         let likesCount = post.likes;
         let unlikesCount = post.unlikes;
 
@@ -261,6 +261,13 @@ exports.reactToVideoPost = async (req, res) => {
         const hasExistingReaction = reactionResult.rowCount > 0;
         let notificationMessage = null;
 
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
+
         if (hasExistingReaction) {
             const reaction = reactionResult.rows[0];
 
@@ -272,7 +279,7 @@ exports.reactToVideoPost = async (req, res) => {
             // Update reaction
             await db.query(
                 `UPDATE post_video_reactions 
-                 SET like = $1, unlike = $2 
+                 SET "like" = $1, "unlike" = $2 
                  WHERE post_id = $3 AND post_reacter_id = $4`,
                 [like, unlike, post_id, profileId]
             );
@@ -280,16 +287,16 @@ exports.reactToVideoPost = async (req, res) => {
             // Adjust counts and set notification
             if (reaction.like && !like) {
                 likesCount--;
-                if (unlike) notificationMessage = "Someone unliked your video post"; // Like → Unlike
+                if (unlike) notificationMessage = `${user.rows[0].username} unliked your post`; // Like → Unlike
             } else if (reaction.unlike && !unlike) {
                 unlikesCount--;
-                if (like) notificationMessage = "Someone liked your video post"; // Unlike → Like
+                if (like) notificationMessage = `${user.rows[0].username} liked your post`; // Unlike → Like
             } else if (!reaction.like && like) {
                 likesCount++;
-                notificationMessage = "Someone liked your video post"; // Off → Like
+                notificationMessage = `${user.rows[0].username} liked your post`; // Off → Like
             } else if (!reaction.unlike && unlike) {
                 unlikesCount++;
-                notificationMessage = "Someone unliked your video post"; // Off → Unlike
+                notificationMessage = `${user.rows[0].username} unliked your post`; // Off → Unlike
             }
 
         } else {
@@ -302,10 +309,10 @@ exports.reactToVideoPost = async (req, res) => {
 
             if (like) {
                 likesCount++;
-                notificationMessage = "Someone liked your video post";
+                notificationMessage = `${user.rows[0].username} liked your post`;
             } else if (unlike) {
                 unlikesCount++;
-                notificationMessage = "Someone unliked your video post";
+                notificationMessage = `${user.rows[0].username} unliked your post`;
             }
         }
 
@@ -318,16 +325,13 @@ exports.reactToVideoPost = async (req, res) => {
         );
 
         // Send real-time notification to post owner if there’s a change
-        const profilePic = req.profile.image || "https://res.cloudinary.com/dlanhtzbw/image/upload/v1675343188/Telegram%20Clone/no-profile_aknbeq.jpg";
-        if (notificationMessage && profileId !== postOwnerId) {
-            sendNotification(postOwnerId, notificationMessage, profilePic, "reaction");
-            // Also store in DB for consistency with audio
-            await db.query(
-                `INSERT INTO notifications (user_id, message, type, action_user_id)
-                 VALUES ($1, $2, $3, $4)`,
-                [postOwnerId, notificationMessage, "REACTION", profileId]
-            );
-        }
+        const profilePic = req.profile.image;
+        
+        await db.query(
+            `INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+                VALUES ($1, $2, $3, $4, $5, $6)`,
+            [postOwnerId, notificationMessage, "POST_VIDEO", profileId, profilePic, post_id]
+        );
 
         return res.status(hasExistingReaction ? 200 : 201).json({
             message: hasExistingReaction
@@ -380,10 +384,17 @@ exports.commentToVideoPost = async (req, res) => {
             [commentCount+1, post_id]
         );
 
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
+
         await db.query(`
-            INSERT INTO notifications (user_id, message, type, action_user_id)
-            VALUES ($1, $2, $3, $4)`,
-            [postResult.rows[0].profile_id, "New Comment", "COMMENT", profileId]
+            INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [postResult.rows[0].profile_id, `${user.rows[0].username} commented on your post`, "POST_VIDEO", profileId, req.profile.image, post_id]
         );
 
         return res.status(201).json({ status: true, message: "Comment added successfully!" });
@@ -526,10 +537,17 @@ exports.shareVideoPost = async (req, res) => {
             [shareCount+1, post_id]
         );
 
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
+
         await db.query(`
-            INSERT INTO notifications (user_id, message, type, action_user_id)
-            VALUES ($1, $2, $3, $4)`,
-            [postExists.rows[0].profile_id, "New Share", "SHARE", profileId]
+            INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [postExists.rows[0].profile_id, `${user.rows[0].username} shared your post`, "POST_VIDEO", profileId, req.profile.image, post_id]
         );
 
         return res.status(201).json({ status: true, message: "Shared successfully!" });

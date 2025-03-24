@@ -189,7 +189,7 @@ exports.reactToAudioPost = async (req, res) => {
 
         // Check if post exists
         const postResult = await db.query(
-            `SELECT id, likes, unlikes, profile_id FROM post_audio WHERE id = $1`,
+            `SELECT id, profile_id, likes, unlikes, profile_id FROM post_audio WHERE id = $1`,
             [post_id]
         );
 
@@ -210,7 +210,14 @@ exports.reactToAudioPost = async (req, res) => {
 
         const hasExistingReaction = reactionResult.rowCount > 0;
         let notificationMessage = null;
-        let notificationType = "REACTION";
+        let notificationType = "POST_AUDIO";
+
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
 
         if (hasExistingReaction) {
             const reaction = reactionResult.rows[0];
@@ -223,7 +230,7 @@ exports.reactToAudioPost = async (req, res) => {
             // Update reaction
             await db.query(
                 `UPDATE post_audio_reactions 
-                 SET like = $1, unlike = $2 
+                 SET "like" = $1, "unlike" = $2
                  WHERE post_id = $3 AND post_reacter_id = $4`,
                 [like, unlike, post_id, profileId]
             );
@@ -231,16 +238,16 @@ exports.reactToAudioPost = async (req, res) => {
             // Adjust counts and set notification
             if (reaction.like && !like) {
                 likesCount--;
-                if (unlike) notificationMessage = "Someone unliked your post"; // Like → Unlike
+                if (unlike) notificationMessage =  `${user.rows[0].username} unliked your post`; // Like → Unlike
             } else if (reaction.unlike && !unlike) {
                 unlikesCount--;
-                if (like) notificationMessage = "Someone liked your post"; // Unlike → Like
+                if (like) notificationMessage = `${user.rows[0].username} liked your post`; // Unlike → Like
             } else if (!reaction.like && like) {
                 likesCount++;
-                notificationMessage = "Someone liked your post"; // Off → Like
+                notificationMessage = `${user.rows[0].username} liked your post`; // Off → Like
             } else if (!reaction.unlike && unlike) {
                 unlikesCount++;
-                notificationMessage = "Someone unliked your post"; // Off → Unlike
+                notificationMessage = `${user.rows[0].username} unliked your post`; // Off → Unlike
             }
 
         } else {
@@ -253,10 +260,10 @@ exports.reactToAudioPost = async (req, res) => {
 
             if (like) {
                 likesCount++;
-                notificationMessage = "Someone liked your post";
+                notificationMessage = `${user.rows[0].username} liked your post`;
             } else if (unlike) {
                 unlikesCount++;
-                notificationMessage = "Someone unliked your post";
+                notificationMessage = `${user.rows[0].username} unliked your post`;
             }
         }
 
@@ -271,9 +278,9 @@ exports.reactToAudioPost = async (req, res) => {
         // Send notification if there’s a change worth notifying
         if (notificationMessage) {
             await db.query(
-                `INSERT INTO notifications (user_id, message, type, action_user_id)
-                 VALUES ($1, $2, $3, $4)`,
-                [post.profile_id, notificationMessage, notificationType, profileId]
+                `INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [post.profile_id, notificationMessage, notificationType, profileId, req.profile.image, post_id]
             );
         }
 
@@ -327,10 +334,17 @@ exports.commentToAudioPost = async (req, res) => {
             [commentCount+1, post_id]
         );
 
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
+
         await db.query(`
-            INSERT INTO notifications (user_id, message, type, action_user_id)
-            VALUES ($1, $2, $3, $4)`,
-            [postResult.rows[0].profile_id, "New Comment", "COMMENT", profileId]
+            INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [postResult.rows[0].profile_id, `${user.rows[0].username} commented on your post`, "POST_AUDIO", profileId, req.profile.image, post_id]
         );
 
         return res.status(201).json({ status: true, message: "Comment added successfully!" });
@@ -458,6 +472,15 @@ exports.shareAudioPost = async (req, res) => {
         const post = postExists.rows[0];
         let shareCount = post.shares || 0;
 
+        // Check if share exist
+        const shareExists = await db.query(
+            `SELECT id FROM post_audio_share
+             WHERE post_sharer_id = $1`,
+            [profileId]
+        );
+
+        if (shareExists.rowCount > 0) return res.status(406).json({ staus: false, message: "You have already shared this post" })
+
         // 3️⃣ Insert the comment
         await db.query(
             `INSERT INTO post_audio_share (post_id, post_sharer_id, caption)
@@ -472,10 +495,17 @@ exports.shareAudioPost = async (req, res) => {
             [shareCount+1, post_id]
         );
 
+        // Get the username
+        const user = await db.query(`
+            SELECT username FROM users
+            WHERE id = $1`,
+            [req.profile.user_id]
+        );
+
         await db.query(`
-            INSERT INTO notifications (user_id, message, type, action_user_id)
-            VALUES ($1, $2, $3, $4)`,
-            [postExists.rows[0].profile_id, "New Share", "SHARE", profileId]
+            INSERT INTO notifications (user_id, message, type, action_user_id, action_user_image, post_id)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [postExists.rows[0].profile_id, `${user.rows[0].username} shared your post`, "POST_AUDIO", profileId, req.profile.image, post_id]
         );
 
         return res.status(201).json({ status: true, message: "Shared successfully!" });

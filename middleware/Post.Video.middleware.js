@@ -24,7 +24,7 @@ const reactToVideoPostValidator = [
 
 const commentToVideoPostValidator = [
     body('post_id').isString().trim().notEmpty().withMessage('Post Id cannot be empty'),
-    body('comment').isString().trim().notEmpty().withMessage('Comment cannot be empty')
+    body('comment').isString().trim().withMessage('Comment cannot be empty')
 ];
 
 const updateCommentOnVideoPostValidator = [

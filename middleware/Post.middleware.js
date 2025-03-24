@@ -40,7 +40,7 @@ exports.deleteCommentOnAudioPostValidator = [
 
 exports.shareAudioPostValidator = [
     body('post_id').isString().trim().notEmpty().withMessage('Post Id cannot be empty'),
-    body('content').isString().trim().notEmpty().withMessage('Content cannot be empty')
+    body('content').isString().trim().withMessage('Content cannot be empty')
 ];
 
 exports.updateSharedAudioPostValidator = [

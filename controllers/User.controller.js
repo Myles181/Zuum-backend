@@ -329,4 +329,80 @@ exports.followProfile = async (req, res) => {
     }
 };
 
+exports.getRoomId = async (req, res) => {
+    const { profileId_1, profileId_2 } = req.body;
+    try {
+        let room, roomId;
+
+        // Check if the profile id is available
+        if (!profileId_1 || !profileId_2) return res.status(400).json({ message: 'Profile Ids missing' });
+
+        // Check if the profile id exist
+        const profile1Exists = await db.query(`
+            SELECT id FROM profile
+            WHERE id = $1`,
+            [profileId_1]
+        );
+        if (profile1Exists.rowCount === 0) return res.status(404).json({ message: 'Profile1 not found' });
+
+        const profile2Exists = await db.query(`
+            SELECT id FROM profile
+            WHERE id = $1`,
+            [profileId_2]
+        );
+
+        if (profile2Exists.rowCount === 0) return res.status(404).json({ message: 'Profile2 not found' });
+
+        // Check if roomId already exist
+        room = await db.query(`
+            SELECT * FROM rooms
+            WHERE profileId_1 = $1 AND profileId_2 = $2`,
+            [profileId_1, profileId_2]
+        );
+
+        // Check both ways
+        if (room.rowCount === 0) {
+            room = await db.query(`
+                SELECT * FROM rooms
+                WHERE profileId_1 = $1 AND profileId_2 = $2`,
+                [profileId_2, profileId_1]
+            );
+        }
+        if (room.rowCount > 0) return res.status(200).json({ room_id: room.rows[0].room_id });
+
+        // generate room id
+        while (true) {
+            roomId = generateOtp();
+
+            let result = await db.query(`
+                SELECT room_id FROM rooms
+                WHERE room_id = $1`,
+                [roomId]
+            );
+            console.log("Room Id: ", roomId);
+            console.log("Result: ", result.rowCount);
+            if (result.rowCount === 0) break;
+        }
+
+        // Save the roomId
+        await db.query(`
+            INSERT INTO rooms (profileId_1, profileId_2, room_id)
+            VALUES ($1, $2, $3)`,
+            [profileId_1, profileId_2, roomId]
+        );
+
+        return res.status(200).json({ room_id: roomId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: false,
+            error: error.message,
+        });
+    }
+};
+
+exports.getMessages = async (req, res) => {
+    return;
+};
+
 

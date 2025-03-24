@@ -1,7 +1,7 @@
 const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator } = require('../middleware/User.middleware');
-const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById } = require('../controllers/User.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -336,6 +336,78 @@ router.delete('/profile', tokenRequired, deleteProfile);
  */
 router.post('/follow', tokenProfileRequired, ...followProfileValidator, followProfile);
 
+/**
+ * @swagger
+ * /api/user/get-room-id:
+ *   post:
+ *     summary: Get the room id of the profiles
+ *     description: Get the room id of the profiles
+ *     tags: [Profile] 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileId_1:
+ *                 type: integer
+ *                 description: The ID of the profile to follow or unfollow.
+ *                 example: 123
+ *               profileId_2:
+ *                 type: integer
+ *                 description: The ID of the profile to follow or unfollow.
+ *                 example: 123
+ *     responses:
+ *       200:
+ *         description: Get the room id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 room_id:
+ *                   type: string
+ *               example:
+ *                 room_id: "123456"
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Profile Ids missing"
+ *       404:
+ *         description: Profile ID does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Profile1 not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/get-room-id', getRoomId);
 
 module.exports = router;
 

@@ -8,6 +8,8 @@ const createNotificationTable = async () => {
                 id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL REFERENCES profile(id) ON DELETE CASCADE,
                 action_user_id INT NOT NULL REFERENCES profile(id) ON DELETE CASCADE,
+                action_user_image VARCHAR(255),
+                post_id INT,
                 message TEXT NOT NULL,
                 type VARCHAR(50) NOT NULL,
                 read BOOLEAN DEFAULT false,

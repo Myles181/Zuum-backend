@@ -17,7 +17,10 @@ const app = express();
 
 const server = http.createServer(app); // ✅ Use http server
 const io = new Server(server, {
-  cors: { origin: 'http://localhost:5500/' }, // Allow all origins for now
+  cors: { 
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST']
+  }, // Allow all origins for now
 });
 
 const PORT = process.env.PORT || 5000;
@@ -80,16 +83,72 @@ create_db_tables();
 io.on("connection", (socket) => {
   console.log(`⚡ User connected: ${socket.id}`);
 
-  // Join room based on user ID (assumes user sends their ID after connecting)
-  socket.on("join_room", (userId) => {
+  // User joins their own "room" for direct messages
+  socket.on("joinChat", (userId) => {
+      socket.userId = userId; // Store userId on socket
       socket.join(userId.toString());
-      console.log(`✅ User ${userId} joined notifications room`);
+      console.log(`✅ User ${userId} joined their chat room`);
+  });
+
+  // Handle sending a message
+  socket.on("sendMessage", async (messageData) => {
+      const { content, receiverId, roomId } = messageData; // Message details
+      const senderId = socket.userId; // From socket, set in joinChat
+
+      if (!senderId) {
+          console.log('❌ No userId set for socket');
+          return;
+      }
+      if (!receiverId || !roomId) {
+        console.log('❌ Required fields not passed');
+        return;
+      } 
+
+      try {
+          // Validate the roomId
+          const roomExists = await db.query(
+            `SELECT * FROM rooms
+             WHERE room_id = $1`,
+             [roomId]
+          );
+
+          if (roomExists.rowCount === 0) {
+            console.log('❌ room id not found');
+            return ;
+          }
+
+          // Save to DB
+          const result = await db.query(
+              `INSERT INTO messages (sender_id, receiver_id, room_id, content)
+               VALUES ($1, $2, $3, $4) RETURNING *`,
+              [senderId, receiverId, roomId, content]
+          );
+          const savedMessage = result.rows[0];
+
+          // Prepare message for clients
+          const messageToSend = {
+              id: savedMessage.id,
+              senderId: savedMessage.sender_id,
+              receiverId: savedMessage.receiver_id,
+              roomId: savedMessage.room_id,
+              content: savedMessage.content,
+              createdAt: savedMessage.created_at
+          };
+
+          // Send to receiver (direct message) or room (group chat)
+          io.to(roomId).emit("receiveMessage", messageToSend);
+
+          console.log(`✉️ Message sent from ${senderId}:`, messageToSend);
+      } catch (error) {
+          console.error('❌ Error saving message:', error);
+      }
   });
 
   socket.on("disconnect", () => {
-      console.log(`❌ User disconnected: ${socket.id}`);
+      console.log(`❌ User ${socket.userId || socket.id} disconnected`);
   });
 });
+
 
 
 // Now uses server.listen instead of app.listen

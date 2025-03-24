@@ -9,7 +9,7 @@ exports.getNotifications = async (req, res) => {
         const client = await db.connect();
 
         const result = await client.query(
-            `SELECT id, message, type, created_at, read, action_user_id
+            `SELECT *
              FROM notifications WHERE user_id = $1
              ORDER BY created_at DESC`,
             [userId]
