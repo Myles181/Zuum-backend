@@ -11,6 +11,7 @@ const fileUpload = require('express-fileupload');
 const { Server } = require('socket.io'); // ✅ Import socket.io 
 const http = require('http'); // ✅ Import http
 const morgan = require("morgan");
+const db = require('./config/db.conf.js');
 
 
 const app = express();
@@ -19,7 +20,8 @@ const server = http.createServer(app); // ✅ Use http server
 const io = new Server(server, {
   cors: { 
     origin: 'http://localhost:3000',
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST'],
+    credentials: true
   }, // Allow all origins for now
 });
 
@@ -85,9 +87,27 @@ io.on("connection", (socket) => {
 
   // User joins their own "room" for direct messages
   socket.on("joinChat", (userId) => {
-      socket.userId = userId; // Store userId on socket
-      socket.join(userId.toString());
-      console.log(`✅ User ${userId} joined their chat room`);
+    if (!userId) {
+        console.log(`❌ joinChat called with no userId`);
+        return;
+    }
+    socket.userId = userId;
+    socket.join(userId.toString());
+    console.log(`✅ User ${userId} joined their chat room (socket.userId: ${socket.userId})`);
+  });
+
+  socket.on("fetchMessages", async (roomId) => {
+    try {
+        const result = await db.query(
+            `SELECT * FROM messages WHERE room_id = $1 ORDER BY created_at ASC`,
+            [roomId]
+        );
+        socket.emit('recentMessages', result.rows); // Send back to requester
+        console.log(`Fetched messages for room ${roomId} for socket ${socket.id}`);
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        socket.emit('error', 'Failed to fetch messages');
+    }
   });
 
   // Handle sending a message
@@ -96,6 +116,7 @@ io.on("connection", (socket) => {
       const senderId = socket.userId; // From socket, set in joinChat
 
       if (!senderId) {
+          // console.log(socket);
           console.log('❌ No userId set for socket');
           return;
       }
