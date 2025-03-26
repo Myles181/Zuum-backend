@@ -460,8 +460,44 @@ exports.getRoomId = async (req, res) => {
     }
 };
 
-exports.getMessages = async (req, res) => {
-    return;
-};
+// controllers/userController.js
+exports.getChatRooms = async (req, res) => {
+    const userId = req.profile.id; // Logged-in user’s ID from auth middleware
 
+    try {
+        // Fetch all rooms where userId is profileId_1 or profileId_2
+        const roomsResult = await db.query(
+            `SELECT room_id, profileId_1, profileId_2 
+             FROM rooms 
+             WHERE profileId_1 = $1 OR profileId_2 = $1`,
+            [userId]
+        );
+
+        // Validate: No rooms found
+        if (roomsResult.rowCount === 0) {
+            console.log(`No chat rooms found for user ${userId}`);
+            return res.status(200).json([]);
+        }
+
+        console.log(roomsResult.rows);
+
+        // Shape the response
+        const rooms = roomsResult.rows.map(row => {
+            const recipient_id = row.profileid_1 === userId ? row.profileid_2 : row.profileid_1;
+            console.log("Recipient Id: ", recipient_id);
+            return {
+                room_id: row.room_id,
+                recipient_id
+            };
+        });
+
+        // Send response
+        console.log(`Fetched ${rooms.length} chat rooms for user ${userId}`);
+        return res.status(200).json(rooms);
+
+    } catch (error) {
+        console.error(`Error fetching chat rooms for user ${userId}:`, error);
+        return res.status(500).json({ error: 'Failed to fetch chat rooms' });
+    }
+};
 

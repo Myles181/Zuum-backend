@@ -1,22 +1,26 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
+const FLUTTER_WAVE_SECRET_KEY = process.env.FLUTTER_WAVE_SECRET_KEY
 
 
-exports.createVirtualAccount = async (customerCode, username) => {
+exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, lastname, bvn) => {
     try {
         const response = await axios.post(
-            "https://api.paystack.co/dedicated_account",
+            "https://api.flutterwave.com/v3/virtual-account-numbers",
             {
-                customer: customerCode,
-                first_name: username,
-                last_name: "ZUUM",
-                preferred_bank: "titan-paystack"
+                email: email,
+                tx_ref: tx_ref,//"apex_tx_ref-002201",
+                phonenumber: phonenumber,
+                is_permanent: true,
+                firstname: firstname,
+                lastname: lastname,
+                narration: "Create Virtual Account For Zuum Details",
+                bvn: bvn
             },
             {
                 headers: {
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+                    Authorization: `Bearer ${FLUTTER_WAVE_SECRET_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -30,11 +34,11 @@ exports.createVirtualAccount = async (customerCode, username) => {
     }
 };
 
-(async () => {
-    try {
-        const result = await exports.createVirtualAccount("CUS_358xertt55", "myles");
-        console.log(result);
-    } catch (err) {
-        console.error(err);
-    }
-})();
+// (async () => {
+//     try {
+//         const result = await exports.createVirtualAccount("CUS_358xertt55", "myles");
+//         console.log(result);
+//     } catch (err) {
+//         console.error(err);
+//     }
+// })();

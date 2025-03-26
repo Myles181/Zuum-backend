@@ -1,7 +1,7 @@
 const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator } = require('../middleware/User.middleware');
-const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId } = require('../controllers/User.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -408,6 +408,48 @@ router.post('/follow', tokenProfileRequired, ...followProfileValidator, followPr
  *                 error: "Internal server error"
  */
 router.post('/get-room-id', getRoomId);
+
+
+/**
+ * @swagger
+ * /api/user/get-rooms:
+ *   post:
+ *     summary: Get the room id of the profiles
+ *     description: Get the room id of the profiles
+ *     tags: [Profile]
+ *     responses:
+ *       200:
+ *         description: Get rooms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 room_id:
+ *                   type: string
+ *                 recipient_id:
+ *                   type: string
+ *               example:
+ *                 room_id: "123456"
+ *                 recipient_id: "283"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/get-rooms', tokenProfileRequired, getChatRooms);
+
+
 
 module.exports = router;
 
