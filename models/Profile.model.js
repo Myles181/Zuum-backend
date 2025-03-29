@@ -27,5 +27,30 @@ const createProfileTable = async () => {
 };
 
 // Run this function before starting the server
+const createVirtualAccountTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS virtual_accounts (
+                id SERIAL PRIMARY KEY,
+                profile_id INT UNIQUE NOT NULL,
+                order_ref VARCHAR(255) NOT NULL,
+                flw_ref VARCHAR(255) NOT NULL,
+                bank_name VARCHAR(255) NOT NULL,
+                account_number VARCHAR(255) NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-module.exports = { createProfileTable };
+                CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
+                REFERENCES profile(id) ON DELETE CASCADE
+            )
+        `);
+        // console.log('✅ Virtual Account table is ready!');
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+};
+
+
+
+module.exports = { createProfileTable, createVirtualAccountTable };

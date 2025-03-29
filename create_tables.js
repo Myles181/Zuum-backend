@@ -2,7 +2,7 @@ const { createUserTable, createOtpTable } = require('./models/User.model.js');
 const { createProfileTable } = require('./models/Profile.model.js');
 const { createFollowTable } = require('./models/Followers.model.js');
 const { createAccountTable } = require('./models/Account.model.js');
-const { createSubscriptionTable, createPaymentsTable } = require('./models/Payment.model.js');
+const { createPaymentTables } = require('./models/Payment.model.js');
 const { createMessageTable, createRoomsTable } = require('./models/Chat.model.js');
 const {
     createPostAudioTable, 
@@ -38,10 +38,9 @@ const create_db_tables = async () => {
     await PostVideoLikesTable();
     await PostVideoSharesTable();
     await createNotificationTable();
-    await createSubscriptionTable();
-    await createPaymentsTable();
     await createMessageTable();
     await createRoomsTable();
+    await createPaymentTables();
 
     return
 }

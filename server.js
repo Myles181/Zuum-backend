@@ -66,6 +66,7 @@ const userRoutes = require('./routes/User.routes');
 const postAudioRoutes = require('./routes/Post.Audio.routes');
 const postVideoRoutes = require('./routes/Post.Video.routes');
 const cloudinaryWebhook = require("./routes/cloudinaryWebhook");
+const paymentRoutes = require('./routes/Payment.routes');
 const notificationRoutes = require('./routes/Notification.routes')(io);  // ✅ Pass `io`
 
 app.use('/api/auth', authRoutes);
@@ -73,6 +74,8 @@ app.use('/api/user', userRoutes);
 app.use('/api/audio', postAudioRoutes);
 app.use('/api/video', postVideoRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/payment', paymentRoutes);
+
 app.use("/webhook", cloudinaryWebhook);
 
 // Setup Swagger Documentation

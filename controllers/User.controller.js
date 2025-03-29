@@ -2,6 +2,7 @@ require('dotenv').config();
 const db = require('../config/db.conf.js');
 const { validationResult } = require('express-validator');
 const { transporter } = require('../helpers/transport.js');
+const { createVirtualAccount } = require('../helpers/createVirtualAccount.js');
 const { generateOtp, saveOtp } = require("../utils/otp-utils.js");
 const cloudinary = require('cloudinary').v2;
 
@@ -500,4 +501,82 @@ exports.getChatRooms = async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch chat rooms' });
     }
 };
+
+exports.CreateVirtualAccount = async (req, res) => {
+    const user = req.user;
+    const { firstname, lastname, bvn, phonenumber } = req.body;
+
+    // GET PROFILE
+    const profile = await db.query(`
+        SELECT id FROM profile
+        WHERE user_id = $1`,
+        [user.id]
+    );
+
+    if (!profile.rowCount === 0) return res.status(404).json({ message: 'Profile does not exist' });
+
+    try {
+        // Check if virtual account alreadey exists
+        const accountExists = await db.query(`
+            SELECT * FROM virtual_accounts
+            WHERE profile_id = $1`,
+            [profile.id]
+        );
+
+        if (accountExists.rowCount > 0) {
+            return res.status(200).json({ message: 'Virtual account retrieved successfully', 
+                virtual_account: {
+                    bank_name: accountExists.rows[0].bank_name, 
+                    account_number: accountExists.rows[0].account_number } 
+                });
+        }
+
+        // Create the virtual account
+        const virtualAccount = await createVirtualAccount(
+            email=user.email,
+            tx_ref=tx_ref,
+            phonenumber=phonenumber,
+            firstname=firstname,
+            lastname=lastname,
+            bvn=bvn
+        );
+
+        await db.query(`
+            INSERT INTO virtual_accounts (profile_id, order_ref, flw_ref, bank_name, account_number)
+            VALUES ($1, $2, $3, $4, $5)`,
+            [profile.rows[0].id, virtualAccount.order_ref, virtualAccount.flw_ref, virtualAccount.bank_name, virtualAccount.account_number]
+        );
+
+        return res.status(200).json({ message: 'Virtual account created successfully', 
+            virtual_account: { 
+                bank_name: virtualAccount.bank_name, 
+                account_number: virtualAccount.account_number } 
+            });
+        
+    } catch (error) {
+        console.log("Error creating virtual account: ", error.message);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+exports.GetVirtualAccount = async (req, res) => {
+    const profile = req.profile;
+
+    try {
+        // Get virtual account
+        const virtual_account = await db.query(`
+            SELECT * FROM virtual_accounts
+            WHERE profile_id = $1`,
+            [profile.id]
+        );
+
+        if (!virtual_account.rowCount === 0) return res.status(404).json({ message: 'No virtual account found' });
+
+        return res.status(200).json({ message: 'Retreived successfully', virtual_account: virtual_account.rows[0] });
+    } catch (error) {
+        console.log("Error message: ", error.message);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 
