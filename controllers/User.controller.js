@@ -483,14 +483,28 @@ exports.getChatRooms = async (req, res) => {
         console.log(roomsResult.rows);
 
         // Shape the response
-        const rooms = roomsResult.rows.map(row => {
-            const recipient_id = row.profileid_1 === userId ? row.profileid_2 : row.profileid_1;
-            console.log("Recipient Id: ", recipient_id);
-            return {
+        const rooms = await Promise.all(
+            roomsResult.rows.map(async (row) => {
+              const recipient_id = row.profileid_1 === userId ? row.profileid_2 : row.profileid_1;
+              const recipient_profile = await db.query(`
+                SELECT u.username, p.image
+                FROM profile p
+                LEFT JOIN users u ON p.user_id = u.id
+                WHERE p.id = $1 AND u.deactivated = false
+              `, [recipient_id]); // Pass recipient_id as a parameter
+              console.log("Recipient Id: ", recipient_id);
+              console.log("Recipient Profile: ", recipient_profile.rows[0]);
+              return {
                 room_id: row.room_id,
-                recipient_id
-            };
-        });
+                user_id: userId,
+                recipient_profile_image: recipient_profile.rows[0].image,
+                recipient_profile_username: recipient_profile.rows[0].username,
+                recipient_id,
+              };
+            })
+          );
+
+          console.log(rooms);
 
         // Send response
         console.log(`Fetched ${rooms.length} chat rooms for user ${userId}`);
