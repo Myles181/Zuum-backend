@@ -549,6 +549,12 @@ exports.getChatRooms = async (req, res) => {
 };
 
 exports.CreateVirtualAccount = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        console.log(errors);
+        return res.status(400).json({ errors: errors.array()[0].msg });
+    }
+
     const user = req.user;
     const { firstname, lastname, bvn, phonenumber } = req.body;
 
@@ -580,25 +586,25 @@ exports.CreateVirtualAccount = async (req, res) => {
         // Create the virtual account
         const virtualAccount = await createVirtualAccount(
             email=user.email,
-            tx_ref=tx_ref,
-            phonenumber=phonenumber,
-            firstname=firstname,
-            lastname=lastname,
-            bvn=bvn
+            tx_ref=`fluxel-${user.id}-${Date.now()}`,
+            phonenumber,
+            firstname,
+            lastname,
+            bvn
         );
 
         await db.query(`
             INSERT INTO virtual_accounts (profile_id, order_ref, flw_ref, bank_name, account_number)
             VALUES ($1, $2, $3, $4, $5)`,
-            [profile.rows[0].id, virtualAccount.order_ref, virtualAccount.flw_ref, virtualAccount.bank_name, virtualAccount.account_number]
+            [profile.rows[0].id, virtualAccount.data.order_ref, virtualAccount.data.flw_ref, virtualAccount.data.bank_name, virtualAccount.data.account_number]
         );
 
         return res.status(200).json({ message: 'Virtual account created successfully', 
             virtual_account: { 
-                bank_name: virtualAccount.bank_name, 
-                account_number: virtualAccount.account_number } 
+                bank_name: virtualAccount.data.bank_name, 
+                account_number: virtualAccount.data.account_number }
             });
-        
+
     } catch (error) {
         console.log("Error creating virtual account: ", error.message);
         return res.status(500).json({ error: error.message });
@@ -610,15 +616,15 @@ exports.GetVirtualAccount = async (req, res) => {
 
     try {
         // Get virtual account
-        const virtual_account = await db.query(`
+        const virtual_accounts = await db.query(`
             SELECT * FROM virtual_accounts
             WHERE profile_id = $1`,
             [profile.id]
         );
 
-        if (!virtual_account.rowCount === 0) return res.status(404).json({ message: 'No virtual account found' });
+        if (virtual_accounts.rowCount === 0) return res.status(404).json({ message: 'No virtual account found' });
 
-        return res.status(200).json({ message: 'Retreived successfully', virtual_account: virtual_account.rows[0] });
+        return res.status(200).json({ message: 'Retreived successfully', virtual_account: virtual_accounts.rows[0] });
     } catch (error) {
         console.log("Error message: ", error.message);
         return res.status(500).json({ message: error.message });

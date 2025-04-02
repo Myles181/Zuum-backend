@@ -58,6 +58,17 @@ exports.createPayment = async (req, res) => {
         const plan = planResult.rows[0];
         // console.log(plan);
 
+        // // Check if user already on a plan
+        // const transactionExists = await db.query(`
+        //     SELECT * FROM transactions
+        //     WHERE user_id = $1 AND (status = "pending" OR status = "success")`,
+        //     [user.id]
+        // );
+
+        // if (transactionExists.rowCount > 0 && transactionExists.rows[0].status === 'pending') {
+        //     await db.query(`UPDATE ON transactions`)
+        // }
+
         // Generate unique transaction reference
         const txRef = `fluxel-${userId}-${Date.now()}`;
 

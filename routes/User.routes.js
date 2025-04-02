@@ -1,6 +1,6 @@
 const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
-const { updateProfileValidator, followProfileValidator } = require('../middleware/User.middleware');
+const { updateProfileValidator, followProfileValidator, virtualAccountValidator } = require('../middleware/User.middleware');
 const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms, CreateVirtualAccount, GetVirtualAccount } = require('../controllers/User.controller');
 const router = express.Router();
 
@@ -452,92 +452,6 @@ router.get('/get-rooms', tokenProfileRequired, getChatRooms);
 /**
  * @swagger
  * /api/user/virtual_account:
- *   post:
- *     summary: Create a virtual account
- *     description: Create a virtual account for the user
- *     tags: [Profile] 
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               first_name:
- *                 type: string
- *                 description: The user first name
- *                 example: Cyril
- *               last_name:
- *                 type: string
- *                 description: The user last name
- *                 example: Emmanuel
- *              phonenumber:
- *                 type: string
- *                 description: The user phonenumber
- *                 example: 07048568350
- *              bvn:
- *                 type: string
- *                 description: The user bvn
- *                 example: 123456
- *     responses:
- *       200:
- *         description: Virtual account created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *               message:
- *                   type: string
- *               virtual_account:
- *                   type: object
- *                   properties:
- *                       bank_name:
- *                           type: string
- *                       account_number:
- *                           type: string
- *       400:
- *         description: Required fields missing
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *               example:
- *                 message: "Required fields missing"
- *       404:
- *         description: 
- *         content:
- *           application/json:
- *             schema: Profile not found
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *               example:
- *                 message: "Profile1 not found"
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: boolean
- *                 error:
- *                   type: string
- *               example:
- *                 status: false
- *                 error: "Internal server error"
- */
-router.post('/virtual_account', tokenRequired, CreateVirtualAccount);
-
-/**
- * @swagger
- * /api/user/virtual_account:
  *   get:
  *     summary: Get the virtual account
  *     description: Get the virtual account
@@ -575,6 +489,92 @@ router.post('/virtual_account', tokenRequired, CreateVirtualAccount);
  *                 error: "Internal server error"
  */
 router.get('/virtual_account', tokenProfileRequired, GetVirtualAccount);
+
+/**
+ * @swagger
+ * /api/user/virtual_account:
+ *   post:
+ *     summary: Create a virtual account
+ *     description: Create a virtual account for the user
+ *     tags: [Profile]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstname:
+ *                 type: string
+ *                 description: The user's first name
+ *                 example: Cyril
+ *               lastname:
+ *                 type: string
+ *                 description: The user's last name
+ *                 example: Emmanuel
+ *               phonenumber:
+ *                 type: string
+ *                 description: The user's phone number
+ *                 example: 07048568350
+ *               bvn:
+ *                 type: string
+ *                 description: The user's BVN (Bank Verification Number)
+ *                 example: 123456
+ *     responses:
+ *       200:
+ *         description: Virtual account created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 virtual_account:
+ *                   type: object
+ *                   properties:
+ *                     bank_name:
+ *                       type: string
+ *                     account_number:
+ *                       type: string
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Required fields missing"
+ *       404:
+ *         description: Profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Profile not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/virtual_account', tokenRequired, ...virtualAccountValidator, CreateVirtualAccount);
 
 module.exports = router;
 

@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const FLUTTER_WAVE_SECRET_KEY = process.env.FLUTTER_WAVE_SECRET_KEY
+const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY
 
 
 exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, lastname, bvn) => {
@@ -20,7 +20,7 @@ exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, las
             },
             {
                 headers: {
-                    Authorization: `Bearer ${FLUTTER_WAVE_SECRET_KEY}`,
+                    Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
                     "Content-Type": "application/json"
                 }
             }

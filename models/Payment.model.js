@@ -67,6 +67,7 @@ const createPaymentTables = async () => {
                 amount DECIMAL(15, 2) NOT NULL,
                 currency VARCHAR(3) DEFAULT 'NGN',
                 status VARCHAR(20) DEFAULT 'pending',
+                account_expiration TIMESTAMPTZ NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
