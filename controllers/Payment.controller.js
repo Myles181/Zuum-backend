@@ -42,8 +42,9 @@ exports.initializePaymentPlans = async (req, res) => {
 };
 
 exports.createPayment = async (req, res) => {
-    const { planName } = req.body;
-    const userId = req.user.id;
+    const user = req.user;
+    const userId = user.id;
+    const planName = user.identity;
 
     try {
         // Fetch payment plan
@@ -55,7 +56,7 @@ exports.createPayment = async (req, res) => {
             return res.status(404).json({ status: false, error: 'Payment plan not found' });
         }
         const plan = planResult.rows[0];
-        console.log(plan);
+        // console.log(plan);
 
         // Generate unique transaction reference
         const txRef = `fluxel-${userId}-${Date.now()}`;
@@ -78,28 +79,35 @@ exports.createPayment = async (req, res) => {
                 timeout: 50000,
             }
         );
+        console.log(response.data);
 
-        const { status, data } = response.data;
+        // Destructure correctly based on response structure
+        const { status, meta } = response.data;
         if (status !== 'success') {
-            throw new Error('Failed to initiate payment');
+           throw new Error('Failed to initiate payment');
         }
+
+        // Extract flw_ref from meta.authorization
+        const flwRef = meta.authorization.transfer_reference; // Using transfer_reference as flw_ref
 
         // Store transaction
         await db.query(
-            `INSERT INTO transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [userId, plan.id, txRef, data.flw_ref, plan.amount, 'NGN']
+        `INSERT INTO transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency, account_expiration)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [userId, plan.id, txRef, flwRef, plan.amount, 'NGN', meta.authorization.account_expiration]
         );
 
+        // Send response with bank transfer details
         res.status(201).json({
-            status: true,
-            message: 'Payment initiated. Please complete the bank transfer.',
-            paymentDetails: {
-                accountNumber: data.meta.account_number,
-                bankName: data.meta.bank_name,
-                amount: data.amount,
-                reference: txRef,
-            },
+        status: true,
+        message: 'Payment initiated. Please complete the bank transfer.',
+        paymentDetails: {
+            accountNumber: meta.authorization.transfer_account,
+            bankName: meta.authorization.transfer_bank,
+            amount: meta.authorization.transfer_amount,
+            account_expiration: meta.authorization.account_expiration,
+            reference: txRef,
+        },
         });
     } catch (error) {
         console.error(error.message);

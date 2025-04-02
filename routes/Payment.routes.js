@@ -7,31 +7,23 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
 /**
  * @swagger
  * /api/payment/create:
- *   post:
+ *   get:
  *     summary: Create a bank transfer payment
+ *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               planName:
- *                 type: string
- *                 example: "artist"
  *     responses:
  *       201:
  *         description: Payment initiated
  */
-router.post('/create', tokenRequired, createPayment);
+router.get('/create', tokenRequired, createPayment);
 
 /**
  * @swagger
  * /api/payment/webhooks/flutterwave:
  *   post:
  *     summary: Handle Flutterwave webhook events
+ *     tags: [Payment]
  *     requestBody:
  *       required: true
  *       content:
@@ -55,6 +47,7 @@ router.post('/webhooks/flutterwave', handleFlutterwaveWebhook);
  * /api/payment/admin/payment-plans/initialize:
  *   get:
  *     summary: Handle Flutterwave webhook events
+ *     tags: [Payment]
  *     responses:
  *       200:
  *         description: Webhook received

@@ -26,16 +26,32 @@ exports.getProfile = async (req, res) => {
                 u.email_verified,
                 u.is_admin,
                 COALESCE(
-                    (SELECT array_agg(follower_id)
-                     FROM follow 
-                     WHERE following_id = p.id AND active = true),
-                    ARRAY[]::INTEGER[]
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', follower_p.id,
+                            'username', follower_u.username,
+                            'image', follower_p.image
+                        )
+                    )
+                    FROM follow f
+                    LEFT JOIN profile follower_p ON f.follower_id = follower_p.id
+                    LEFT JOIN users follower_u ON follower_p.user_id = follower_u.id
+                    WHERE f.following_id = p.id AND f.active = true AND follower_u.deactivated = false),
+                    '[]'::json
                 ) AS followers_list,
                 COALESCE(
-                    (SELECT array_agg(following_id)
-                     FROM follow 
-                     WHERE follower_id = p.id AND active = true),
-                    ARRAY[]::INTEGER[]
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', following_p.id,
+                            'username', following_u.username,
+                            'image', following_p.image
+                        )
+                    )
+                    FROM follow f
+                    LEFT JOIN profile following_p ON f.following_id = following_p.id
+                    LEFT JOIN users following_u ON following_p.user_id = following_u.id
+                    WHERE f.follower_id = p.id AND f.active = true AND following_u.deactivated = false),
+                    '[]'::json
                 ) AS following_list
             FROM profile p
             LEFT JOIN users u ON p.user_id = u.id
@@ -78,16 +94,32 @@ exports.getProfileById = async (req, res) => {
                 u.identity,
                 u.email_verified,
                 COALESCE(
-                    (SELECT array_agg(follower_id)
-                     FROM follow 
-                     WHERE following_id = p.id AND active = true),
-                    ARRAY[]::INTEGER[]
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', follower_p.id,
+                            'username', follower_u.username,
+                            'image', follower_p.image
+                        )
+                    )
+                    FROM follow f
+                    LEFT JOIN profile follower_p ON f.follower_id = follower_p.id
+                    LEFT JOIN users follower_u ON follower_p.user_id = follower_u.id
+                    WHERE f.following_id = p.id AND f.active = true AND follower_u.deactivated = false),
+                    '[]'::json
                 ) AS followers_list,
                 COALESCE(
-                    (SELECT array_agg(following_id)
-                     FROM follow 
-                     WHERE follower_id = p.id AND active = true),
-                    ARRAY[]::INTEGER[]
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', following_p.id,
+                            'username', following_u.username,
+                            'image', following_p.image
+                        )
+                    )
+                    FROM follow f
+                    LEFT JOIN profile following_p ON f.following_id = following_p.id
+                    LEFT JOIN users following_u ON following_p.user_id = following_u.id
+                    WHERE f.follower_id = p.id AND f.active = true AND following_u.deactivated = false),
+                    '[]'::json
                 ) AS following_list
             FROM profile p
             LEFT JOIN users u ON p.user_id = u.id
