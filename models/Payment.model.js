@@ -58,7 +58,7 @@ const createPaymentTables = async () => {
 
         // Create transactions table
         await client.query(`
-            CREATE TABLE IF NOT EXISTS transactions (
+            CREATE TABLE IF NOT EXISTS subscription_transactions (
                 id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL,
                 payment_plan_id INT,

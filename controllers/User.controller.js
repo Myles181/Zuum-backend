@@ -556,7 +556,6 @@ exports.CreateVirtualAccount = async (req, res) => {
     }
 
     const user = req.user;
-    const { firstname, lastname, bvn, phonenumber } = req.body;
 
     // GET PROFILE
     const profile = await db.query(`
@@ -587,10 +586,10 @@ exports.CreateVirtualAccount = async (req, res) => {
         const virtualAccount = await createVirtualAccount(
             email=user.email,
             tx_ref=`fluxel-${user.id}-${Date.now()}`,
-            phonenumber,
-            firstname,
-            lastname,
-            bvn
+            phonenumber=user.phonenumber,
+            firstname=user.firstname,
+            lastname=user.lastname,
+            bvn=process.env.BVN
         );
 
         await db.query(`
@@ -599,11 +598,12 @@ exports.CreateVirtualAccount = async (req, res) => {
             [profile.rows[0].id, virtualAccount.data.order_ref, virtualAccount.data.flw_ref, virtualAccount.data.bank_name, virtualAccount.data.account_number]
         );
 
-        return res.status(200).json({ message: 'Virtual account created successfully', 
-            virtual_account: { 
-                bank_name: virtualAccount.data.bank_name, 
-                account_number: virtualAccount.data.account_number }
-            });
+        return res.status(200).json({ message: 'Virtual account created successfully',
+            virtual_account: {
+                bank_name: virtualAccount.data.bank_name,
+                account_number: virtualAccount.data.account_number 
+            }
+        });
 
     } catch (error) {
         console.log("Error creating virtual account: ", error.message);

@@ -10,6 +10,7 @@ const createProfileTable = async () => {
                 image VARCHAR(255),
                 cover_image VARCHAR(255),
                 bio VARCHAR(255),
+                balance INT DEFAULT 0,
                 followers INT DEFAULT 0,
                 following INT DEFAULT 0,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

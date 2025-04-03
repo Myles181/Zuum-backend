@@ -12,21 +12,33 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
 
     if (event === 'charge.completed') {
         try {
-            const { tx_ref, status, flw_ref, amount } = data;
+            const { tx_ref, status, flw_ref, meta } = data;
+
+            if (meta?.payment_type === 'subscription') {
 
             // Update transaction status
-            const result = await db.query(
-                `UPDATE transactions 
-                 SET status = $1, flw_ref = $2, updated_at = CURRENT_TIMESTAMP 
-                 WHERE tx_ref = $3 RETURNING *`,
-                [status, flw_ref, tx_ref]
-            );
+                const result = await db.query(
+                    `UPDATE transactions 
+                    SET status = $1, flw_ref = $2, updated_at = CURRENT_TIMESTAMP 
+                    WHERE tx_ref = $3 RETURNING *`,
+                    [status, flw_ref, tx_ref]
+                );
 
-            if (result.rows.length === 0) {
-                console.log(`Transaction not found for tx_ref: ${tx_ref}`);
-            } else {
-                console.log(`Transaction updated: ${tx_ref} - ${status}`);
-                // TODO: Notify user (e.g., email) or update their subscription status
+                if (result.rows.length === 0) {
+                    console.log(`Transaction not found for tx_ref: ${tx_ref}`);
+                } else {
+                    // Update the payment status
+                    await db.query(
+                        `UPDATE profile
+                        SET subscription_status
+                        WHERE user_id = $1`,
+                        [meta?.user_id]
+                    );
+                    console.log(`Transaction updated: ${tx_ref} - ${status}`);
+                    // TODO: Notify user (e.g., email) or update their subscription status
+                }
+            } else if (meta?.payment_type === 'beat_payment') {
+                return;
             }
         } catch (error) {
             console.error('Webhook processing error:', error);

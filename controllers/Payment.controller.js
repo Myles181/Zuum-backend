@@ -81,6 +81,11 @@ exports.createPayment = async (req, res) => {
                 currency: 'NGN',
                 email: req.user.email,
                 narration: `Payment for ${plan.name} plan`,
+                meta: {
+                    payment_type: "subscription",
+                    plan_name: plan.name,
+                    user_id: userId
+                }
             },
             {
                 headers: {
@@ -103,7 +108,7 @@ exports.createPayment = async (req, res) => {
 
         // Store transaction
         await db.query(
-        `INSERT INTO transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency, account_expiration)
+        `INSERT INTO subscription_transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency, account_expiration)
         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [userId, plan.id, txRef, flwRef, plan.amount, 'NGN', meta.authorization.account_expiration]
         );
@@ -125,4 +130,6 @@ exports.createPayment = async (req, res) => {
         res.status(500).json({ status: false, error: error.message });
     }
 };
+
+
 
