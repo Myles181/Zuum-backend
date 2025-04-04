@@ -13,8 +13,76 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       201:
+ *       200:
  *         description: Payment initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Payment initiated. Please complete the bank transfer.'
+ *                 paymentDetails:
+ *                   type: object
+ *                   properties:
+ *                     accountNumber:
+ *                       type: string
+ *                       example: '7048568350'
+ *                     bankName:
+ *                       type: string
+ *                       example: 'Flutterwave Bank'
+ *                     amount:
+ *                       type: string
+ *                       example: '1000.00'
+ *                     account_expiration:
+ *                       type: string
+ *                       example: '2023-10-01T12:00:00Z'
+ *                     reference:
+ *                       type: string
+ *                       example: 'flw-1234567890'
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Authentication token is missing or invalid.'
+ *       404:
+ *         description: Payment plan not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Payment plan not found'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Failed to initiate payment'
  */
 router.get('/create', tokenRequired, createPayment);
 

@@ -114,7 +114,7 @@ exports.createPayment = async (req, res) => {
         );
 
         // Send response with bank transfer details
-        res.status(201).json({
+        res.status(200).json({
         status: true,
         message: 'Payment initiated. Please complete the bank transfer.',
         paymentDetails: {
@@ -126,7 +126,7 @@ exports.createPayment = async (req, res) => {
         },
         });
     } catch (error) {
-        console.error(error.message);
+        console.error(error);
         res.status(500).json({ status: false, error: error.message });
     }
 };
