@@ -12,6 +12,7 @@ const createProfileTable = async () => {
                 bio VARCHAR(255),
                 balance INT DEFAULT 0,
                 subscription_status VARCHAR(20),
+                transaction_id INT,
 
                 followers INT DEFAULT 0,
                 following INT DEFAULT 0,
@@ -20,12 +21,14 @@ const createProfileTable = async () => {
 
                 CONSTRAINT fk_user FOREIGN KEY (user_id) 
                 REFERENCES users(id) ON DELETE CASCADE
+                CONSTRAINT fk_transaction FOREIGN KEY (transaction_id) 
+                REFERENCES subscription_transactions(id) ON DELETE CASCADE
             )
         `);
-        // console.log('✅ Profile table is ready!');
+        // console.log('✅ Profile table is ready!'); 
         client.release();
     } catch (err) {
-        console.error('❌ Error creating table:', err);
+        console.error('❌ Error creating table:', err); 
     }
 };
 

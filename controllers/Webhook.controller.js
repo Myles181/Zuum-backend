@@ -15,10 +15,11 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
             const { tx_ref, status, flw_ref, meta } = data;
 
             if (meta?.payment_type === 'subscription') {
+                console.log(`Processing subscription payment data for tx_ref: ${tx_ref}: ${data}`);
 
             // Update transaction status
                 const result = await db.query(
-                    `UPDATE transactions 
+                    `UPDATE subscription_transactions
                     SET status = $1, flw_ref = $2, updated_at = CURRENT_TIMESTAMP 
                     WHERE tx_ref = $3 RETURNING *`,
                     [status, flw_ref, tx_ref]
@@ -30,9 +31,9 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                     // Update the payment status
                     await db.query(
                         `UPDATE profile
-                        SET subscription_status = 'completed'
+                        SET subscription_status = 'completed', transaction_id = $2
                         WHERE user_id = $1`,
-                        [meta?.user_id]
+                        [meta?.user_id, result.rows[0].id]
                     );
                     console.log(`Transaction updated: ${tx_ref} - ${status}`);
                     // TODO: Notify user (e.g., email) or update their subscription status

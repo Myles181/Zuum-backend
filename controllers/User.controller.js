@@ -18,6 +18,7 @@ exports.getProfile = async (req, res) => {
                 p.bio,
                 COALESCE(p.followers, 0) AS followers,
                 COALESCE(p.following, 0) AS following,
+                p.subscription_status,
                 p.created_at,
                 u.username,
                 u.email,
@@ -256,7 +257,6 @@ exports.updateProfile = async (req, res) => {
         });
     }
 };
-
 
 exports.deleteProfile = async (req, res) => {
     try {
