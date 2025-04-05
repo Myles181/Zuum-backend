@@ -45,15 +45,30 @@ exports.createPayment = async (req, res) => {
     const user = req.user;
     const userId = user.id;
     const planName = user.identity;
+    let planResult;
 
     try {
-        // Fetch payment plan
-        const planResult = await db.query(
-            'SELECT * FROM payment_plans WHERE name = $1',
-            [planName]
-        );
-        if (planResult.rows.length === 0) {
-            return res.status(404).json({ status: false, error: 'Payment plan not found' });
+        if (req.onlyDev === 'activated') {
+            // return res.status(401).json({ status: false, error: 'Unauthorized' });
+
+            // Fetch payment plan
+            planResult = await db.query(
+                'SELECT * FROM payment_plans WHERE name = $1',
+                ['onlyDev']
+            );
+            if (! planResult.rows.length) {
+                planResult = await db.query('INSERT INTO payment_plans (name, description, amount, frequency) VALUES ($1, $2, $3, $4) RETURNING *', ['onlyDev', 'Test Plan', 50, 'monthly']);
+            }
+        }
+        else {// Fetch payment plan
+            planResult = await db.query(
+                'SELECT * FROM payment_plans WHERE name = $1',
+                [planName]
+            );
+        
+            if (planResult.rows.length === 0) {
+                return res.status(404).json({ status: false, error: 'Payment plan not found' });
+            }
         }
         const plan = planResult.rows[0];
         // console.log(plan);

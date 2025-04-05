@@ -30,7 +30,7 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                     // Update the payment status
                     await db.query(
                         `UPDATE profile
-                        SET subscription_status
+                        SET subscription_status = 'completed'
                         WHERE user_id = $1`,
                         [meta?.user_id]
                     );

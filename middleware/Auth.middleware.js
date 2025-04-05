@@ -104,6 +104,11 @@ exports.tokenRequired = async (req, res, next) => {
     }
 };
 
+exports.onlyDev = (req, res, next) => {
+    req.onlyDev = 'activated';
+    next();
+};
+
 exports.tokenProfileRequired = async (req, res, next) => {
     try {
         // Token extraction looks good

@@ -1,6 +1,6 @@
 // routes/payment.routes.js
 const router = require('express').Router();
-const { tokenRequired } = require('../middleware/Auth.middleware');
+const { tokenRequired, onlyDev } = require('../middleware/Auth.middleware');
 const { createPayment, initializePaymentPlans } = require('../controllers/Payment.controller');
 const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller');
 
@@ -84,7 +84,7 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
  *                   type: string
  *                   example: 'Failed to initiate payment'
  */
-router.get('/create', tokenRequired, createPayment);
+router.get('/create', onlyDev, tokenRequired, createPayment);
 
 /**
  * @swagger
