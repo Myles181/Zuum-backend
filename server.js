@@ -32,8 +32,8 @@ app.use(morgan("dev")); // Logs HTTP requests
 const corsOptions = {
   origin: [
     'https://zuum-backend-qs8x.onrender.com',
-    'http://localhost:3000', 'http://localhost:5000', 
-    'http://localhost:5173', 'https://zuum-frontend.onrender.com', 
+    'http://localhost:3000', 'http://localhost:5000',
+    'http://localhost:5173', 'https://zuum-frontend.onrender.com',
     'https://zuum-frontend.vercel.app', 'https://df7c-2c0f-2a80-ae2-6f10-a9e7-90ed-9460-456b.ngrok-free.app'], // Allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTION'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
@@ -69,6 +69,7 @@ const authRoutes = require('./routes/Auth.routes');
 const userRoutes = require('./routes/User.routes');
 const postAudioRoutes = require('./routes/Post.Audio.routes');
 const postVideoRoutes = require('./routes/Post.Video.routes');
+const postBeatRoutes = require('./routes/Post.Beat.routes');
 const cloudinaryWebhook = require("./routes/cloudinaryWebhook");
 const paymentRoutes = require('./routes/Payment.routes');
 const notificationRoutes = require('./routes/Notification.routes')(io);  // ✅ Pass `io`
@@ -79,6 +80,7 @@ app.use('/api/audio', postAudioRoutes);
 app.use('/api/video', postVideoRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/beat', postBeatRoutes);
 
 app.use("/webhook", cloudinaryWebhook);
 

@@ -16,7 +16,7 @@ exports.createBeatPost = async (req, res) => {
         const profileId = req.profile.id;
 
         // 2️⃣ Extract audio post details from request
-        const { caption, type, boomplay, apple_music, spotify, audiomark, youtube_music } = req.body;
+        const { caption, description, total_supply, amount } = req.body;
 
         let cloud_audio_upload, cloud_cover_photo;
 
@@ -33,11 +33,11 @@ exports.createBeatPost = async (req, res) => {
 
         // 3️⃣ Insert into post_beat table
         const postResult = await db.query(
-            `INSERT INTO post_beat 
-            (profile_id, caption, type, audio_upload, cover_photo, apple_music, spotify, audiomark, boomplay, youtube_music)
+            `INSERT INTO post_audio_sell 
+            (profile_id, caption, description, audio_upload, cover_photo, amount, total_supply)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
             RETURNING *`,
-            [profileId, caption, type || 'music', cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, apple_music || '', spotify || '', audiomark || '', boomplay || '', youtube_music || '']
+            [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, amount, total_supply]
         );
 
         console.log(postResult);
@@ -76,7 +76,7 @@ exports.updateBeatPost = async (req, res) => {
 
         // 1️⃣ Check if post exists
         console.log(post_id)
-        const postExists = await db.query(`SELECT profile_id FROM post_beat WHERE id = $1`, [post_id]);
+        const postExists = await db.query(`SELECT profile_id FROM post_audio_sell WHERE id = $1`, [post_id]);
         if (postExists.rowCount === 0) {
             return res.status(404).json({ status: false, message: "Post not found." });
         }
@@ -121,7 +121,7 @@ exports.updateBeatPost = async (req, res) => {
         if (audioUpdates.length > 0) {
             audioValues.push(post_id);
             await db.query(
-                `UPDATE post_beat SET ${audioUpdates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+                `UPDATE post_audio_sell SET ${audioUpdates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
                 audioValues
             );
         }
@@ -137,6 +137,7 @@ exports.updateBeatPost = async (req, res) => {
     }
 };
 
+
 exports.deleteBeatPost = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -149,7 +150,7 @@ exports.deleteBeatPost = async (req, res) => {
 
 
         // 1️⃣ Check if post exists
-        const postExists = await db.query(`SELECT id FROM post_beat WHERE id = $1`, [post_id]);
+        const postExists = await db.query(`SELECT id FROM post_audio_sell WHERE id = $1`, [post_id]);
         if (postExists.rowCount === 0) {
             return res.status(404).json({ status: false, message: "Post not found." });
         }
@@ -159,7 +160,7 @@ exports.deleteBeatPost = async (req, res) => {
 
         // 3️⃣ Delete the comment
         await db.query(
-            `DELETE FROM post_beat WHERE id = $1`,
+            `DELETE FROM post_audio_sell WHERE id = $1`,
             [post_id]
         );
 
@@ -170,7 +171,6 @@ exports.deleteBeatPost = async (req, res) => {
         return res.status(500).json({ status: false, error: error.message });
     }
 };
-
 
 
 exports.reactToBeatPost = async (req, res) => {
@@ -193,7 +193,7 @@ exports.reactToBeatPost = async (req, res) => {
 
         // Check if the post exists and get current counts
         const postResult = await db.query(
-            `SELECT id, likes, unlikes FROM post_beat WHERE id = $1`, 
+            `SELECT id, likes, unlikes FROM post_audio_sell WHERE id = $1`, 
             [post_id]
         );
         
@@ -257,7 +257,7 @@ exports.reactToBeatPost = async (req, res) => {
         
         // Update the post counts
         await db.query(
-            `UPDATE post_beat
+            `UPDATE post_audio_sell
              SET likes = $1, unlikes = $2
              WHERE id = $3`,
             [likesCount, unlikesCount, post_id]
@@ -290,7 +290,7 @@ exports.commentToBeatPost = async (req, res) => {
 
         // 2️⃣ Check if the post exists
         const postResult = await db.query(
-            `SELECT id, comments FROM post_beat WHERE id = $1`,
+            `SELECT id, comments FROM post_audio_sell WHERE id = $1`,
             [post_id]
         );
 
@@ -309,7 +309,7 @@ exports.commentToBeatPost = async (req, res) => {
         );
 
         await db.query(
-            `UPDATE post_beat
+            `UPDATE post_audio_sell
             SET comments = $1
             WHERE id = $2`,
             [commentCount+1, post_id]
@@ -322,6 +322,7 @@ exports.commentToBeatPost = async (req, res) => {
         return res.status(500).json({ status: false, error: error.message });
     }
 };
+
 
 // 📝 Update a Comment on an Beat Post
 exports.updateCommentOnBeatPost = async (req, res) => {
@@ -383,7 +384,7 @@ exports.deleteCommentOnBeatPost = async (req, res) => {
 
         // Get current comment count
         const postResult = await db.query(
-            `SELECT comments FROM post_beat WHERE id = $1`,
+            `SELECT comments FROM post_audio_sell WHERE id = $1`,
             [postId]
         );
 
@@ -401,7 +402,7 @@ exports.deleteCommentOnBeatPost = async (req, res) => {
 
         // Update the comment count
         await db.query(
-            `UPDATE post_beat
+            `UPDATE post_audio_sell
              SET comments = $1
              WHERE id = $2`,
             [Math.max(0, currentCommentCount - 1), postId]
@@ -423,154 +424,59 @@ exports.purchaseBeatPost = async (req, res) => {
     }
 
     try {
-        const profileId = req.profile.id;
-        const {  } = req.body;
+        const profile = req.profile;
+        const { postId, amount } = req.body;
+
+        // Find the post
+        const postResult = await db.query(
+            `SELECT * FROM post_audio_sell
+            WHERE id = $1`,
+            [postId]
+        );
+
+        if (postResult.rowCount === 0) return res.status(404).json({ message: 'Post does not exist' });
+        else if (postResult.rows[0].total_buyers >= postResult.rows[0].total_supply) return res.status(404).json({ message: 'Post is sold out' });
+
+        // Check if user balance is upto 
+        if (profile.balance < amount) {
+            return res.status(400).json({ status: false, message: "Insufficient balance" });
+        }
+
+        // Add the audio in users purchased beats
+        await db.query(`
+            INSERT INTO audio_purchases (profile_id, post_id, audio_upload, amount_paid)
+            VALUES ($1, $2, $3)`, [profile.id, postId, postResult.rows[0].audio_upload, amount]
+        );
+
+        // Remove the amount from the user
+        await db.query(`
+            UPDATE profile
+            SET balance = balance - $1
+            WHERE id = $2`, [amount, profile.id]
+        );
+
+        // Add the amount to the user earnings
+        await db.query(`
+            UPDATE profile
+            SET balance = balance + $1
+            WHERE id = $2`, [amount, postResult.rows[0].profile_id]
+        );
+
+        // Add to the post's purchase count
+        await db.query(`
+            UPDATE post_audio_sell
+            SET total_buyers = total_buyers + 1
+            WHERE id = $1`, [postId]
+        );
+
+        // Send a success response
+        return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
 
     } catch (error) {
         console.error("Error deleting comment:", error);
         return res.status(500).json({ status: false, error: error.message });
     }
 }
-
-exports.shareBeatPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        console.log(errors);
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const profileId = req.profie.id;
-
-        const { post_id, content } = req.body;
-
-        // 2️⃣ Check if the post exists
-        const postExists = await db.query(
-            `SELECT id FROM post_beat WHERE id = $1`,
-            [post_id]
-        );
-
-        if (postExists.rowCount === 0) {
-            return res.status(404).json({ status: false, message: "Post not found." });
-        }
-
-        const post = postResult.rows[0];
-        let shareCount = post.shares;
-
-        // 3️⃣ Insert the comment
-        await db.query(
-            `INSERT INTO post_beat_share (post_id, post_sharer_id, caption)
-             VALUES ($1, $2, $3)`,
-            [post_id, profileId, content]
-        );
-
-        await db.query(
-            `UPDATE post_beat
-            SET shares = $1
-            WHERE id = $2`,
-            [shareCount+1, post_id]
-        );
-
-        return res.status(201).json({ status: true, message: "Shared successfully!" });
-
-    } catch (error) {
-        console.error("Error in shareBeatPost:", error);
-        return res.status(500).json({ status: false, error: error.message });
-    }
-};
-
-// 📝 Update a Share on an Beat Post
-exports.updateSharedBeatPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        console.log(errors);
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const profileId = req.profile.id;
-        const { share_id, content } = req.body;
-
-        // 2️⃣ Check if the comment exists and belongs to the user
-        const shareResult = await db.query(
-            `SELECT id FROM post_beat_share WHERE id = $1 AND post_sharer_id = $2`,
-            [share_id, profileId]
-        );
-
-        if (shareResult.rowCount === 0) {
-            return res.status(404).json({ status: false, message: "Post share not found or unauthorized." });
-        }
-
-        // 3️⃣ Update the comment
-        await db.query(
-            `UPDATE post_beat_share SET content = $1 WHERE id = $2`,
-            [content, share_id]
-        );
-
-        return res.status(200).json({ status: true, message: "Post share updated successfully!" });
-
-    } catch (error) {
-        console.error("Error updating shared post:", error);
-        return res.status(500).json({ status: false, error: error.message });
-    }
-};
-
-// 🗑️ Delete a Share on an Beat Post
-exports.deleteSharedBeatPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        console.log(errors);
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const profileId = req.profile.id;
-        const { share_id } = req.body;
-
-        // 2️⃣ Check if the post share exists and belongs to the user
-        const shareResult = await db.query(
-            `SELECT id, post_id FROM post_beat_share WHERE id = $1 AND post_sharer_id = $2`,
-            [share_id, profileId]
-        );
-
-        if (shareResult.rowCount === 0) {
-            return res.status(404).json({ status: false, message: "Post share not found or unauthorized." });
-        }
-        const postId = shareResult.rows[0].post_id;
-
-        // Get current comment count
-        const postResult = await db.query(
-            `SELECT shares FROM post_beat WHERE id = $1`,
-            [postId]
-        );
-
-        if (postResult.rowCount === 0) {
-            return res.status(404).json({ status: false, message: "Associated post not found." });
-        }
-
-        const currentShareCount = postResult.rows[0].shares;
-
-        // 3️⃣ Delete the comment
-        await db.query(
-            `DELETE FROM post_beat_share WHERE id = $1`,
-            [share_id]
-        );
-
-        await db.query(
-            `UPDATE post_beat
-            SET shares = $1
-            WHERE id = $2`,
-            [currentShareCount-1, postId]
-        );
-
-        return res.status(200).json({ status: true, message: "Post share deleted successfully!" });
-
-    } catch (error) {
-        console.error("Error deleting comment:", error);
-        return res.status(500).json({ status: false, error: error.message });
-    }
-};
-
 
 // Get all audio posts for the authenticated user
 exports.getUserBeatPosts = async (req, res) => {
@@ -579,7 +485,7 @@ exports.getUserBeatPosts = async (req, res) => {
         
         // Query to get all audio posts from this user
         const userPostsResult = await db.query(
-            `SELECT * FROM post_beat 
+            `SELECT * FROM post_audio_sell 
             WHERE profile_id = $1
             ORDER BY created_at DESC`,
             [profileId]
@@ -611,24 +517,24 @@ exports.getBeatPostById = async (req, res) => {
     console.log("Fetching audio post by ID");
     try {
         const { postId } = req.params; // Assuming the post ID is passed as a URL parameter
-        
+
         // Query to get the main post with username from users table
         const postResult = await db.query(
             `SELECT p.*, u.username, pr.image AS profile_picture 
-             FROM post_beat p
+             FROM post_audio_sell p
              JOIN profile pr ON p.profile_id = pr.id
              JOIN users u ON pr.user_id = u.id
              WHERE p.id = $1`,
             [postId]
         );
-        
+
         if (postResult.rowCount === 0) {
             return res.status(404).json({ 
                 status: false, 
                 message: "Beat post not found" 
             });
         }
-        
+
         const post = postResult.rows[0];
 
         // Query to get comments with commenter information
@@ -641,7 +547,7 @@ exports.getBeatPostById = async (req, res) => {
              ORDER BY c.created_at DESC`,
             [postId]
         );
-        
+
         // Query to get reactions with reactor information
         const reactionsResult = await db.query(
             `SELECT r.*, u.username, pr.image AS profile_picture 
@@ -651,31 +557,19 @@ exports.getBeatPostById = async (req, res) => {
              WHERE r.post_id = $1`,
             [postId]
         );
-        
-        // Query to get shares with sharer information
-        const sharesResult = await db.query(
-            `SELECT s.*, u.username, pr.image
-             FROM post_beat_share s
-             JOIN profile pr ON s.post_sharer_id = pr.id
-             JOIN users u ON pr.user_id = u.id
-             WHERE s.post_id = $1
-             ORDER BY s.created_at DESC`,
-            [postId]
-        );
-        
+
         // Combine all data
         const postWithDetails = {
             ...post,
             comments: commentsResult.rows,
-            reactions: reactionsResult.rows,
-            shares: sharesResult.rows
+            reactions: reactionsResult.rows
         };
-        
+
         return res.status(200).json({
             status: true,
             post: postWithDetails
         });
-        
+
     } catch (error) {
         console.error("❌ Error getting audio post details:", error);
         res.status(500).json({ status: false, error: error.message });
@@ -694,7 +588,7 @@ exports.getBeatPosts = async (req, res) => {
         // Query to get posts with creator information
         const postsResult = await db.query(
             `SELECT p.*, u.username, pf.image, COUNT(*) OVER() AS total_count
-            FROM post_beat p
+            FROM post_audio_sell p
             JOIN profile pf ON p.profile_id = pf.id
             JOIN users u ON pf.user_id = u.id
             ORDER BY p.created_at DESC

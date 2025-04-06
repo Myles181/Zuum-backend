@@ -36,6 +36,22 @@ const createPaymentTables = async () => {
             )
         `);
 
+        // Create internal Transfer
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS audio_sell_transactions (
+                id SERIAL PRIMARY KEY,
+                profile_id INT NOT NULL,
+                amount DECIMAL(15, 2) NOT NULL,
+                currency VARCHAR(3) DEFAULT 'NGN',
+                post_id INT NOT NULL,
+
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+                CONSTRAINT fk_profile FOREIGN KEY (profile_id) REFERENCES profile(id) ON DELETE CASCADE,
+                CONSTRAINT fk_post FOREIGN KEY (post_id) REFERENCES post_audio_sell(id) ON DELETE CASCADE
+            )
+        `);
+
         console.log('✅ Payment tables created');
     } catch (err) {
         console.error('❌ Error creating payment tables:', err);
@@ -44,6 +60,8 @@ const createPaymentTables = async () => {
         client.release();
     }
 };
+
+
 
 module.exports = { createPaymentTables }
 

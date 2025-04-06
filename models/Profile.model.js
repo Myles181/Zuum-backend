@@ -11,7 +11,7 @@ const createProfileTable = async () => {
                 cover_image VARCHAR(255),
                 bio VARCHAR(255),
                 balance INT DEFAULT 0,
-                subscription_status VARCHAR(20),
+                subscription_status VARCHAR(20) DEFAULT NULL,
                 transaction_id INT,
 
                 followers INT DEFAULT 0,
@@ -20,7 +20,7 @@ const createProfileTable = async () => {
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_user FOREIGN KEY (user_id) 
-                REFERENCES users(id) ON DELETE CASCADE
+                REFERENCES users(id) ON DELETE CASCADE,
                 CONSTRAINT fk_transaction FOREIGN KEY (transaction_id) 
                 REFERENCES subscription_transactions(id) ON DELETE CASCADE
             )

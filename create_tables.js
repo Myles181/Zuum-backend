@@ -18,6 +18,13 @@ const {
     PostVideoSharesTable,
 } = require('./models/PostVideo.model.js');
 
+const { 
+    createPostAudioForSaleTable,
+    createPostBeatCommentsTable,
+    createPostBeatLikesTable,
+    AudioPurchasesTable,
+} = require('./models/PostBeat.model.js');
+
 const { createNotificationTable } = require('./models/Notification.model.js') // import notification table
 
 
@@ -40,8 +47,12 @@ const create_db_tables = async () => {
     await createNotificationTable();
     await createMessageTable();
     await createRoomsTable();
-    await createPaymentTables();
     await createVirtualAccountTable();
+    await createPostAudioForSaleTable();
+    await createPostBeatCommentsTable();
+    await createPostBeatLikesTable();
+    await AudioPurchasesTable();
+    await createPaymentTables();
 
     return
 }

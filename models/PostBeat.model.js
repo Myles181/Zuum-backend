@@ -1,24 +1,25 @@
 const db = require('../config/db.conf');
 
-const createPostBeatTable = async () => {
+const createPostAudioForSaleTable = async () => {
     try {
         const client = await db.connect();
         await client.query(`
-            CREATE TABLE IF NOT EXISTS post_beat (
+            CREATE TABLE IF NOT EXISTS post_audio_sell (
                 id SERIAL PRIMARY KEY,
                 profile_id INT NOT NULL,
                 caption VARCHAR(255) NOT NULL,
+                description VARCHAR(255),
                 cover_photo VARCHAR(255) NOT NULL,
+                audio_upload VARCHAR(255) NOT NULL,
+                amount INT NOT NULL,
+                total_supply INT DEFAULT 1,
+                total_buyers INT DEFAULT 0,
+
                 likes INT NOT NULL DEFAULT 0,
                 unlikes INT NOT NULL DEFAULT 0,
                 comments INT NOT NULL DEFAULT 0,
 
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-
-                bank_name VARCHAR(255) NOT NULL,
-                bank_account INT NOT NULL,
-                account_name VARCHAR(255) NOT NULL,
-                amount INT NOT NULL,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
@@ -46,7 +47,7 @@ const createPostBeatLikesTable = async () => {
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id)
                 REFERENCES post_audio(id) ON DELETE CASCADE,
-                CONSTRAINT fk_reacter FOREIGN KEY (post_reacter)
+                CONSTRAINT fk_reacter FOREIGN KEY (post_reacter_id)
                 REFERENCES profile(id) ON DELETE CASCADE
             )
         `);
@@ -82,17 +83,16 @@ const createPostBeatCommentsTable = async () => {
     }
 };
 
-const BeatPaymentReferenceTable = async () => {
+const AudioPurchasesTable = async () => {
     try {
         const client = await db.connect();
         await client.query(`
-            CREATE TABLE IF NOT EXISTS post_beat (
+            CREATE TABLE IF NOT EXISTS audio_purchases (
                 id SERIAL PRIMARY KEY,
                 profile_id INT NOT NULL,
                 post_id INT NOT NULL,
-                reference VARCHAR(255) NOT NULL,
-                status VARCHAR(255) NOT NULL DEFAULT 'pending',
-
+                audio_upload VARCHAR(255) NOT NULL,
+                amount_paid INT NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
@@ -110,10 +110,8 @@ const BeatPaymentReferenceTable = async () => {
 // createPostBeatTable();
 
 module.exports = {
-    BeatPaymentReferenceTable,
+    createPostAudioForSaleTable,
     createPostBeatCommentsTable,
     createPostBeatLikesTable,
-    createPostBeatTable
-}
-
-module.exports = db;
+    AudioPurchasesTable
+};
