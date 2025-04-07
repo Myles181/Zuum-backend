@@ -96,6 +96,9 @@ exports.tokenRequired = async (req, res, next) => {
             console.log("User does not exist"); // Fixed typo in message
             return res.status(404).json({ status: false, error: 'User not found' });
         }
+        // Check if the user has paid
+        // const profileData = await db.query('SELECT subscription_status FROM profile WHERE user_id = $1', [userData.rows[0]].id);
+        // if (profileData && !profileData.rows[0].subscription_status) return res.status(401).json({ message: 'User is not on any subscription' });
 
         req.user = userData.rows[0]; // Store the actual user object, not the query result
         next();
@@ -136,6 +139,8 @@ exports.tokenProfileRequired = async (req, res, next) => {
             return res.status(404).json({ status: false, error: 'User not found' });
         }
         const profileData = await db.query("SELECT * FROM profile WHERE user_id = $1", [decoded.id]);
+        // if (profileData && !profileData.rows[0].subscription_status) return res.status(401).json({ message: 'User is not on any subscription' });
+
 
         req.profile = profileData.rows[0];
         next();

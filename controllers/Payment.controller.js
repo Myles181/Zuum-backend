@@ -73,16 +73,27 @@ exports.createPayment = async (req, res) => {
         const plan = planResult.rows[0];
         // console.log(plan);
 
-        // // Check if user already on a plan
-        // const transactionExists = await db.query(`
-        //     SELECT * FROM transactions
-        //     WHERE user_id = $1 AND (status = "pending" OR status = "success")`,
-        //     [user.id]
-        // );
+        // Check if user already on a plan
+        const subscriptionExist = await db.query(`SELECT transaction_id, subscription_status FROM profile WHERE user_id = $1`, [userId]);
+        if (subscriptionExist.rows[0].subscription_status === 'completed') {
 
-        // if (transactionExists.rowCount > 0 && transactionExists.rows[0].status === 'pending') {
-        //     await db.query(`UPDATE ON transactions`)
-        // }
+            const transactionExists = await db.query(`
+                SELECT * FROM subscription_transactions
+                WHERE user_id = $1 AND transaction_id = $2`,
+                [userId, subscriptionExist.rows[0].transaction_id]
+            );
+
+            if (transactionExists.rowCount === 0 || transactionExists.rows[0].status !== 'success') {
+                // Change the Profile payment status to false
+                await db.query(
+                    `UPDATE profile
+                     SET subscription_status = $1
+                     WHERE user_id = $2`,['false', userId]
+                    );
+            } else {
+                return res.status(409).json({ message: 'User already subscribed' });
+            }
+        }
 
         // Generate unique transaction reference
         const txRef = `fluxel-${userId}-${Date.now()}`;
@@ -124,7 +135,7 @@ exports.createPayment = async (req, res) => {
         // Store transaction
         await db.query(
         `INSERT INTO subscription_transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency, account_expiration)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [userId, plan.id, txRef, flwRef, plan.amount, 'NGN', meta.authorization.account_expiration]
         );
 
@@ -146,5 +157,48 @@ exports.createPayment = async (req, res) => {
     }
 };
 
+exports.depositPayment = async (req, res) => {
+    const { tx_ref, amount, currency } = req.body; // Assuming these are passed in the request body
 
+    try {
+        // Check if transaction exists
+        const transactionResult = await db.query(
+            'SELECT * FROM subscription_transactions WHERE tx_ref = $1',
+            [tx_ref]
+        );
+
+        if (transactionResult.rows.length === 0) {
+            return res.status(404).json({ status: false, error: 'Transaction not found' });
+        }
+
+        const transaction = transactionResult.rows[0];
+
+        // Update transaction status to success
+        await db.query(
+            'UPDATE subscription_transactions SET status = $1 WHERE tx_ref = $2',
+            ['success', tx_ref]
+        );
+
+        // Update user subscription status
+        await db.query(
+            `INSERT INTO user_subscriptions (user_id, payment_plan_id, start_date, end_date)
+             VALUES ($1, $2, NOW(), NOW() + INTERVAL '1 year')`,
+            [transaction.user_id, transaction.payment_plan_id]
+        );
+
+        res.status(200).json({
+            status: true,
+            message: 'Payment successful',
+            transaction: {
+                tx_ref,
+                amount,
+                currency,
+                status: 'success',
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: false, error: error.message });
+    }
+}
 

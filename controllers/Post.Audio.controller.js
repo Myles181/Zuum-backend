@@ -3,6 +3,7 @@ const db = require('../config/db.conf.js');
 const { validationResult } = require('express-validator');
 // const { transporter } = require('../helpers/transport.js');
 const cloudinary = require('cloudinary').v2;
+const path = require('path');
 // const ffmpeg = require("fluent-ffmpeg");
 
 
@@ -22,10 +23,19 @@ exports.createAudioPost = async (req, res) => {
 
         // Handle file uploads to Cloudinary
         if (req.files && req.files.cover_photo && req.files.audio_upload) {
+
+            // Check if the audio upload is a valid MP3 file
+            const fileExtension = path.extreme(req.files.audio_upload.name).toLowerCase();
+            if (fileExtension !== '.mp3') {
+                return res.status(406).json({ error: 'Audio file must be in MP3 format' });
+            }
+
             cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
             cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
                 resource_type: "video",
-                chunk_size: 6000000,
+                transformation: [
+                    { duration: 30 } // Trim to 30 seconds
+                ]
             });
         } else {
             return res.status(400).json({ status: false, message: 'No files found' });
@@ -94,10 +104,19 @@ exports.updateAudioPost = async (req, res) => {
         }
 
         if (req.files?.audio_upload) {
+
+            // Check if the audio upload is a valid MP3 file
+            const fileExtension = path.extreme(req.files.audio_upload.name).toLowerCase();
+            if (fileExtension !== '.mp3') {
+                return res.status(400).json({ error: 'Audio file must be in MP3 format' });
+            }
+
             console.log("Upload Start time: ", Date())
             cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
-                resource_type: "video",  // Ensures large files like audio/video are processed properly
-                chunk_size: 6000000,
+                resource_type: "video",
+                transformation: [
+                    { duration: 30 } // Trim to 30 seconds
+                ]
             });
             // console.log(cloud_audio_upload);
 

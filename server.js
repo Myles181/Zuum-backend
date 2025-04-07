@@ -12,6 +12,7 @@ const { Server } = require('socket.io'); // ✅ Import socket.io
 const http = require('http'); // ✅ Import http
 const morgan = require("morgan");
 const db = require('./config/db.conf.js');
+const { startCronJob } = require('./cron-jobs/checkSubscription');
 
 
 const app = express();
@@ -179,7 +180,8 @@ io.on("connection", (socket) => {
   });
 });
 
-
+// Start the cron job
+startCronJob();
 
 // Now uses server.listen instead of app.listen
 server.listen(PORT, () => {

@@ -3,9 +3,10 @@ const db = require('../config/db.conf.js');
 const { validationResult } = require('express-validator');
 // const { transporter } = require('../helpers/transport.js');
 const cloudinary = require('cloudinary').v2;
+const { getVideoDurationInSeconds } = require('get-video-duration');
 // const ffmpeg = require("fluent-ffmpeg");
 // const { sendNotification } = require("../helpers/notification.service.js"); // Import sendNotification. To be used for emitting notifications
-
+const MAX_DURATION_SECONDS = 360; // 6 minutes
 
 
 exports.createVideoPost = async (req, res) => {
@@ -26,6 +27,19 @@ exports.createVideoPost = async (req, res) => {
 
         // Handle file uploads to Cloudinary
         if (req.files && req.files.video_upload) {
+
+            // Check if video is mp4 format
+            if (req.files.video_upload.mimetype !== 'video/mp4') {
+                return res.status(400).json({ error: 'File must be an MP4 video' });
+            }
+
+            const duration = await getVideoDurationInSeconds(req.files.video_upload.tempFilePath);
+
+            // Check if duration exceeds 6 minutes
+            if (duration > MAX_DURATION_SECONDS) {
+                return res.status(406).json({ error: 'Video duration exceeds 6 minutes' });
+            }
+
             cloud_video_upload = await cloudinary.uploader.upload(req.files.video_upload.tempFilePath, {
                 resource_type: "video",
                 folder: "video_uploads",
@@ -54,7 +68,7 @@ exports.createVideoPost = async (req, res) => {
             taggedPeople = tagged_people;
         }
 
-        console.log(taggedPeople);
+        // console.log(taggedPeople);
 
         // 🔹 Verify tagged_people exist before inserting
         if (taggedPeople && Array.isArray(taggedPeople) && taggedPeople.length > 0) {
@@ -70,15 +84,15 @@ exports.createVideoPost = async (req, res) => {
                 [taggedPeopleIds]
             );
 
-            console.log("Valid Profiles: ", validProfiles);
+            // console.log("Valid Profiles: ", validProfiles);
         
             const existingProfileIds = validProfiles.rows.map(row => row.id);
-            console.log("Existing profiles", existingProfileIds);
+            // console.log("Existing profiles", existingProfileIds);
         
             if (existingProfileIds.length > 0) {
                 // Use parameterized query for security
                 const values = existingProfileIds.map((_, index) => `($1, $${index + 2})`).join(",");
-                console.log(postResult);
+                // console.log(postResult);
                 const queryParams = [postResult.rows[0].id, ...existingProfileIds];
         
                 await db.query(
@@ -88,7 +102,7 @@ exports.createVideoPost = async (req, res) => {
             }
         }        
 
-        console.log(postResult);
+        // console.log(postResult);
         res.status(201).json({ 
             status: true, 
             message: "Video post created successfully!"
@@ -137,6 +151,19 @@ exports.updateVideoPost = async (req, res) => {
         let cloud_video_upload;
 
         if (req.files?.video_upload) {
+
+            // Check if video is mp4 format
+            if (req.files.video_upload.mimetype !== 'video/mp4') {
+                return res.status(400).json({ error: 'File must be an MP4 video' });
+            }
+
+            const duration = await getVideoDurationInSeconds(req.files.video_upload.tempFilePath);
+
+            // Check if duration exceeds 6 minutes
+            if (duration > MAX_DURATION_SECONDS) {
+                return res.status(406).json({ error: 'Video duration exceeds 6 minutes' });
+            }
+
             console.log("Upload Start time: ", Date())
             cloud_video_upload = await cloudinary.uploader.upload(req.files.video_upload.tempFilePath, {
                 resource_type: "video",
