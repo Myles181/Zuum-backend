@@ -34,12 +34,12 @@ const create_db_tables = async () => {
     await createOtpTable();
     await createProfileTable();
     await createFollowTable();
-    await createPostAudioTable();
+    // await createPostAudioTable();
     await createAccountTable();
     await createPostAudioCommentsTable();
     await createPostAudioLikesTable();
     await createPostAudioSharesTable();
-    await createPostVideoTable();
+    // await createPostVideoTable();
     await PostVideoCommentsTable();
     await PostTaggedPeopleTable();
     await PostVideoLikesTable();
@@ -48,7 +48,7 @@ const create_db_tables = async () => {
     await createMessageTable();
     await createRoomsTable();
     await createVirtualAccountTable();
-    await createPostAudioForSaleTable();
+    // await createPostAudioForSaleTable();
     await createPostBeatCommentsTable();
     await createPostBeatLikesTable();
     await AudioPurchasesTable();

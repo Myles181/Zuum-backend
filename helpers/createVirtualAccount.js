@@ -4,7 +4,7 @@ require('dotenv').config();
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY
 
 
-exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, lastname, bvn) => {
+exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, lastname, bvn, amount) => {
     try {
         const response = await axios.post(
             "https://api.flutterwave.com/v3/virtual-account-numbers",
@@ -12,9 +12,9 @@ exports.createVirtualAccount = async (email, tx_ref, phonenumber, firstname, las
                 email: email,
                 tx_ref: tx_ref,//"apex_tx_ref-002201",
                 phonenumber: phonenumber,
-                is_permanent: true,
                 firstname: firstname,
                 lastname: lastname,
+                amount: amount,
                 narration: "Create Virtual Account For Zuum Details",
                 bvn: bvn
             },

@@ -437,15 +437,16 @@ exports.purchaseBeatPost = async (req, res) => {
         if (postResult.rowCount === 0) return res.status(404).json({ message: 'Post does not exist' });
         else if (postResult.rows[0].total_buyers >= postResult.rows[0].total_supply) return res.status(404).json({ message: 'Post is sold out' });
 
+        // Check if amount is equivalent to the beat amount
+        if (postResult.rows[0].amount !== amount) return res.status(400).json({ message: 'Incorrect amount' });
+
         // Check if user balance is upto 
-        if (profile.balance < amount) {
-            return res.status(400).json({ status: false, message: "Insufficient balance" });
-        }
+        if (profile.balance < amount) return res.status(400).json({ status: false, message: "Insufficient balance" });
 
         // Add the audio in users purchased beats
         await db.query(`
             INSERT INTO audio_purchases (profile_id, post_id, audio_upload, amount_paid)
-            VALUES ($1, $2, $3)`, [profile.id, postId, postResult.rows[0].audio_upload, amount]
+            VALUES ($1, $2, $3, $4)`, [profile.id, postId, postResult.rows[0].audio_upload, amount]
         );
 
         // Remove the amount from the user
@@ -473,7 +474,21 @@ exports.purchaseBeatPost = async (req, res) => {
         return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
 
     } catch (error) {
-        console.error("Error deleting comment:", error);
+        console.error("Error :", error);
+        return res.status(500).json({ status: false, error: error.message });
+    }
+}
+
+exports.getPurchasedBeats = async (req, res) => {
+    try {
+        const profile = req.profile;
+
+        const audios = await db.query(`SELECT * FROM post_audio_sell WHERE id = $1`, [profile.id]);
+
+        return res.status(200).json({ audios: audios.rows });
+
+    } catch (error) {
+        console.error("Error :", error);
         return res.status(500).json({ status: false, error: error.message });
     }
 }

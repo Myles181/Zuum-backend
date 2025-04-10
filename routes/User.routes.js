@@ -40,6 +40,15 @@ const router = express.Router();
  *                 username:
  *                   type: string
  *                   description: User's username
+ *                 firstname:
+ *                   type: string
+ *                   description: User's firstname
+ *                 lastname:
+ *                   type: string
+ *                   description: User's lastname
+ *                 middlename:
+ *                   type: string
+ *                   description: User's middlename
  *                 email:
  *                   type: string
  *                   description: User's email
@@ -449,77 +458,54 @@ router.post('/get-room-id', getRoomId);
  */
 router.get('/get-rooms', tokenProfileRequired, getChatRooms);
 
-/**
- * @swagger
- * /api/user/virtual_account:
- *   get:
- *     summary: Get the virtual account
- *     description: Get the virtual account
- *     tags: [Profile]
- *     responses:
- *       200:
- *         description: Get virtual accounts 
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *               message:
- *                   type: string
- *               virtual_account:
- *                   type: object
- *                   properties:
- *                       bank_name:
- *                           type: string
- *                       account_number:
- *                           type: string
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: boolean
- *                 error:
- *                   type: string
- *               example:
- *                 status: false
- *                 error: "Internal server error"
- */
-router.get('/virtual_account', tokenProfileRequired, GetVirtualAccount);
+// /**
+//  * @swagger
+//  * /api/user/virtual_account:
+//  *   get:
+//  *     summary: Get the virtual account
+//  *     description: Get the virtual account
+//  *     tags: [Profile]
+//  *     responses:
+//  *       200:
+//  *         description: Get virtual accounts 
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *               message:
+//  *                   type: string
+//  *               virtual_account:
+//  *                   type: object
+//  *                   properties:
+//  *                       bank_name:
+//  *                           type: string
+//  *                       account_number:
+//  *                           type: string
+//  *       500:
+//  *         description: Internal server error
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 status:
+//  *                   type: boolean
+//  *                 error:
+//  *                   type: string
+//  *               example:
+//  *                 status: false
+//  *                 error: "Internal server error"
+//  */
+// router.get('/virtual_account', tokenProfileRequired, GetVirtualAccount);
 
 /**
  * @swagger
  * /api/user/virtual_account:
- *   post:
+ *   get:
  *     summary: Create a virtual account
  *     description: Create a virtual account for the user
  *     tags: [Profile]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               firstname:
- *                 type: string
- *                 description: The user's first name
- *                 example: Cyril
- *               lastname:
- *                 type: string
- *                 description: The user's last name
- *                 example: Emmanuel
- *               phonenumber:
- *                 type: string
- *                 description: The user's phone number
- *                 example: 07048568350
- *               bvn:
- *                 type: string
- *                 description: The user's BVN (Bank Verification Number)
- *                 example: 123456
  *     responses:
  *       200:
  *         description: Virtual account created
@@ -537,6 +523,10 @@ router.get('/virtual_account', tokenProfileRequired, GetVirtualAccount);
  *                       type: string
  *                     account_number:
  *                       type: string
+ *                     expiry_date:
+ *                       type: string
+ *                     amount:
+ *                       type: double
  *       400:
  *         description: Required fields missing
  *         content:
@@ -574,7 +564,7 @@ router.get('/virtual_account', tokenProfileRequired, GetVirtualAccount);
  *                 status: false
  *                 error: "Internal server error"
  */
-router.post('/virtual_account', tokenRequired, ...virtualAccountValidator, CreateVirtualAccount);
+router.get('/virtual_account', tokenRequired, CreateVirtualAccount);
 
 module.exports = router;
 

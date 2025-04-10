@@ -10,7 +10,16 @@ exports.signupValidator = [
         .trim()
         .notEmpty().withMessage('Username is required')
         .isLength({ min: 5 }).withMessage('Username must be at least 5 characters long'),
+
+    body('firstname')
+        .trim().isString().withMessage('Must be a string'),
+
+    body('lastname').isString().withMessage('Must be a string')
+        .trim(),
     
+    body('middlename').isString().withMessage('Must be a string')
+        .trim(),
+
     body('identity')
         .trim()
         .notEmpty().withMessage('Identity field required'),

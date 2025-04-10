@@ -15,6 +15,9 @@ const createPostAudioForSaleTable = async () => {
                 total_supply INT DEFAULT 1,
                 total_buyers INT DEFAULT 0,
 
+                promoted BOOLEAN DEFAULT false,
+                promotion_transaction_id INT NOT NULL,
+
                 likes INT NOT NULL DEFAULT 0,
                 unlikes INT NOT NULL DEFAULT 0,
                 comments INT NOT NULL DEFAULT 0,
@@ -23,6 +26,9 @@ const createPostAudioForSaleTable = async () => {
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
+
+                CONSTRAINT fk_promotion FOREIGN KEY (promotion_transaction_id)
+                REFERENCES promotion_transactions(id) ON DELETE CASCADE
             )
         `);
         // console.log('✅ Post Beat table is ready!');
@@ -106,8 +112,13 @@ const AudioPurchasesTable = async () => {
     }
 };
 
+
+
+// Promotion Plans create  (amount, name, duration, description)
+// Once payment is confirmed, tag the post as promoted = true. ADD to the Post (promoted=true, promoted_transaction_id=FOREIGN_KEY(promotion))
+// Linked to a promotion table (duration, amount, post_id, createdAt)
+
 // Run this function before starting the server
-// createPostBeatTable();
 
 module.exports = {
     createPostAudioForSaleTable,

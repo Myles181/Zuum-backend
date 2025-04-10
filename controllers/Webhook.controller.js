@@ -2,22 +2,21 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
     const secretHash = process.env.FLUTTERWAVE_WEBHOOK_HASH;
     const receivedHash = req.headers['verif-hash'];
 
-    // Verify webhook authenticity
     if (!receivedHash || receivedHash !== secretHash) {
         console.log('Webhook verification failed');
         return res.status(401).json({ status: false, error: 'Invalid webhook signature' });
     }
 
     const { event, data } = req.body;
+    console.log('Webhook Event:', event);
+    console.log('Webhook Data:', JSON.stringify(data, null, 2));
 
     if (event === 'charge.completed') {
         try {
             const { tx_ref, status, flw_ref, meta } = data;
+            const userId = meta?.user_id;
 
-            // For Subscription Plan
             if (meta?.payment_type === 'subscription') {
-                console.log(`Processing subscription payment data for tx_ref: ${tx_ref}: ${data}`);
-
                 const subscriptionQuery = await db.query(
                     `SELECT pp.frequency
                      FROM subscription_transactions st
@@ -27,21 +26,17 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                      LIMIT 1`,
                     [userId]
                 );
-                let interval;
-                if (subscriptionQuery.rows.length === 0 || !subscriptionQuery.rows[0].frequency) {
-                    // Default to 30 days if no plan or frequency found
-                    interval = '30 days';
-                } else {
-                    const frequency = subscriptionQuery.rows[0].frequency;
-                    interval = frequency === 'annual' ? '365 days' : '30 days'; // Adjust as needed
+
+                let interval = '30 days';
+                if (subscriptionQuery.rows.length && subscriptionQuery.rows[0].frequency === 'annual') {
+                    interval = '365 days';
                 }
 
-
-            // Update transaction status
+                // Update transaction status
                 const result = await db.query(
                     `UPDATE subscription_transactions
-                    SET status = $1, flw_ref = $2, updated_at = CURRENT_TIMESTAMP, expires_at = CURRENT_TIMESTAMP + INTERVAL $4
-                    WHERE tx_ref = $3 RETURNING *`,
+                     SET status = $1, flw_ref = $2, updated_at = CURRENT_TIMESTAMP, expires_at = CURRENT_TIMESTAMP + INTERVAL $4
+                     WHERE tx_ref = $3 RETURNING *`,
                     [status, flw_ref, tx_ref, interval]
                 );
 
@@ -50,20 +45,17 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                 } else {
                     const transaction = result.rows[0];
                     if (status === 'successful') {
-                        // Update profile status
+                        // Update user profile
                         await db.query(
                             `UPDATE profile
                              SET subscription_status = 'completed', transaction_id = $2
                              WHERE user_id = $1`,
-                            [meta?.user_id, transaction.id]
+                            [userId, transaction.id]
                         );
-                        console.log(`Transaction updated: ${tx_ref} - ${status}`);
-                        // TODO: Notify user (e.g., email)
+                        console.log(`User ${userId} subscription updated successfully.`);
                     }
                 }
-            } 
-            
-            else if (meta?.payment_type === 'beat_payment') {
+            } else if (meta?.payment_type === 'beat_payment') {
                 return;
             }
         } catch (error) {
@@ -71,6 +63,5 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
         }
     }
 
-    // Always return 200 to acknowledge receipt
     res.status(200).json({ status: true, message: 'Webhook received' });
 };

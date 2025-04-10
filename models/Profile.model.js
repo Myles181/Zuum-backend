@@ -57,6 +57,39 @@ const createVirtualAccountTable = async () => {
     }
 };
 
+const PromotionPlanTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS promotion_plans
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                duration TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP,
+            `)
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
+
+const PromotionTransactionTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS promotion_transactions (
+                id SERIAL PRIMARY KEY,
+                post_id INT UNIQUE NOT NULL,
+                type VARCHAR(10) NOT NULL,
+                amount INT NOT NULL DEFAULT 0.00,
+                tx_ref VARCHAR(10) NOT NULL,
+                created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP,
+            )
+                `);
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
 
 
 module.exports = { createProfileTable, createVirtualAccountTable };

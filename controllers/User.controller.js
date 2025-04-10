@@ -21,8 +21,11 @@ exports.getProfile = async (req, res) => {
                 p.subscription_status,
                 p.created_at,
                 u.username,
+                u.firstname,
+                u.lastname,
+                u.middlename,
                 u.email,
-                u.phone_number,
+                u.phonenumber,
                 u.identity,
                 u.email_verified,
                 u.is_admin,
@@ -90,8 +93,11 @@ exports.getProfileById = async (req, res) => {
                 COALESCE(p.following, 0) AS following,
                 p.created_at,
                 u.username,
+                u.firstname,
+                u.lastname,
+                u.middlename,
                 u.email,
-                u.phone_number,
+                u.phonenumber,
                 u.identity,
                 u.email_verified,
                 COALESCE(
@@ -149,7 +155,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     try {
-        const { username, email, phone_number, bio } = req.body;
+        const { firstname, lastname, middlename, username, email, phone_number, bio } = req.body;
         const userId = req.user.id;
         let imageUrl, coverImageUrl;
         let emailVerificationSent = false;
@@ -168,13 +174,25 @@ exports.updateProfile = async (req, res) => {
         }
 
         // Update users table if any user fields are provided
-        if (username || email || phone_number) {
+        if (username || email || phone_number || firstname || middlename || lastname) {
             const userUpdates = [];
             const userValues = [];
             let paramIndex = 1;
 
             if (username) {
                 userUpdates.push(`username = $${paramIndex++}`);
+                userValues.push(username);
+            }
+            if (firstname) {
+                userUpdates.push(`firstname = $${paramIndex++}`);
+                userValues.push(username);
+            }
+            if (lastname) {
+                userUpdates.push(`lastname = $${paramIndex++}`);
+                userValues.push(username);
+            }
+            if (middlename) {
+                userUpdates.push(`middlename = $${paramIndex++}`);
                 userValues.push(username);
             }
             if (email) {
@@ -567,20 +585,21 @@ exports.CreateVirtualAccount = async (req, res) => {
     if (!profile.rowCount === 0) return res.status(404).json({ message: 'Profile does not exist' });
 
     try {
-        // Check if virtual account alreadey exists
-        const accountExists = await db.query(`
-            SELECT * FROM virtual_accounts
-            WHERE profile_id = $1`,
-            [profile.id]
+
+        // If any of the fields are empty send an error
+        if (!user.firstname) return res.status(406).json({ message: 'Firstname field is empty' });
+        if (!user.lastname) return res.status(406).json({ message: 'Lastname field is empty' });
+        if (!user.middlename) return res.status(406).json({ message: 'Middlename field is empty' });
+        if (!user.phonenumber) return res.status(406).json({ message: 'Phonenumber field is empty' });
+
+        // Get the payment plan
+        const paymentPlan = await db.query(`
+            SELECT * FROM payment_plans
+            WHERE name = $1`,
+            [user.identity]
         );
 
-        if (accountExists.rowCount > 0) {
-            return res.status(200).json({ message: 'Virtual account retrieved successfully', 
-                virtual_account: {
-                    bank_name: accountExists.rows[0].bank_name, 
-                    account_number: accountExists.rows[0].account_number } 
-                });
-        }
+        console.log(process.env.BVN);
 
         // Create the virtual account
         const virtualAccount = await createVirtualAccount(
@@ -589,19 +608,23 @@ exports.CreateVirtualAccount = async (req, res) => {
             phonenumber=user.phonenumber,
             firstname=user.firstname,
             lastname=user.lastname,
-            bvn=process.env.BVN
+            bvn=process.env.BVN,
+            amount=paymentPlan.rows[0].amount,
         );
 
         await db.query(`
-            INSERT INTO virtual_accounts (profile_id, order_ref, flw_ref, bank_name, account_number)
-            VALUES ($1, $2, $3, $4, $5)`,
-            [profile.rows[0].id, virtualAccount.data.order_ref, virtualAccount.data.flw_ref, virtualAccount.data.bank_name, virtualAccount.data.account_number]
+            INSERT INTO virtual_accounts (profile_id, order_ref, flw_ref, bank_name, account_number, expiry_date, amount)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [profile.rows[0].id, virtualAccount.data.order_ref, virtualAccount.data.flw_ref,
+            virtualAccount.data.bank_name, virtualAccount.data.account_number, virtualAccount.data.expiry_date, parseFloat(virtualAccount.data.amount)]
         );
 
         return res.status(200).json({ message: 'Virtual account created successfully',
             virtual_account: {
                 bank_name: virtualAccount.data.bank_name,
-                account_number: virtualAccount.data.account_number 
+                account_number: virtualAccount.data.account_number,
+                expiry_date: virtualAccount.data.expiry_date,
+                amount: virtualAccount.data.amount,
             }
         });
 

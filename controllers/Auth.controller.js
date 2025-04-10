@@ -12,6 +12,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
 const fs = require('fs');
 const path = require('path');
+const generateSimilarUsernames = require("../utils/similarUsername.js");
 
 console.log(SECRET_KEY)
 
@@ -25,7 +26,7 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    let { username, email, password, identity } = req.body;
+    let { username, email, password, identity, firstname, lastname, middlename } = req.body;
 
     try {
         // Check if email already exists
@@ -44,8 +45,8 @@ exports.signup = async (req, res) => {
 
         // Create the user
         const new_user = await db.query(
-            "INSERT INTO users (username, email, password, email_verified, identity) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-            [username, email, hashedPassword, false, identity]
+            "INSERT INTO users (username, email, password, email_verified, identity, firstname, lastname, middlename) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+            [username, email, hashedPassword, false, identity, firstname, lastname, middlename]
         );
 
         const userId = new_user.rows[0].id;
@@ -107,7 +108,31 @@ exports.signup = async (req, res) => {
     }
 };
 
+exports.validateUsername = async (req, res) => {
+    const { username } = req.body;
 
+    if (!username) return res.status(400).json({ message: 'Username is required' });
+
+    const usernameExist = await db.query(`
+        SELECT * FROM users
+        WHERE username = $1`,
+        [username.toLowerCase()]
+    );
+
+     // If username exists, generate similar alternatives
+    //  console.log(usernameExist);
+     if (usernameExist) {
+        // Generate alternative usernames
+        const suggestions = await generateSimilarUsernames(username);
+
+        return res.status(409).json({ 
+            message: 'Username already taken',
+            suggestions: suggestions
+        });
+    }
+
+    return res.status(200).json({ username: `${username}` });
+}
 
 exports.login = async (req, res) => {
     // Check for validation errors

@@ -1,6 +1,6 @@
 const express = require('express');
 const passport = require('passport');
-const { signup, login, forgotPassword, verifyEmail, resetPassword, resendOtp } = require('../controllers/Auth.controller');
+const { signup, login, forgotPassword, verifyEmail, resetPassword, resendOtp, validateUsername } = require('../controllers/Auth.controller');
 const { signupValidator, signinValidator, EmailValidator, verifyEmailValidator, resetPasswordValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
@@ -23,6 +23,18 @@ const router = express.Router();
  *             properties:
  *               username:
  *                 type: string
+ *               firstname:
+ *                   type: string
+ *                   description: User's firstname
+ *               lastname:
+ *                   type: string
+ *                   description: User's lastname
+ *               middlename:
+ *                   type: string
+ *                   description: User's middlename
+ *               phonenumber:
+ *                   type: string
+ *                   description: User's phonenumber
  *               identity:
  *                 type: string
  *                 description: This is the identity of the user on the platform ('artist', 'record_label', 'producer')
@@ -193,6 +205,49 @@ router.post('/verify-email', ...verifyEmailValidator, verifyEmail);
  */
 router.post('/resend-otp', ...EmailValidator, resendOtp);
 
+/**
+ * @swagger
+ * /api/auth/validate-username:
+ *   post:
+ *     summary: Validates a username if it exist or not
+ *     tags: [Auth]
+ *     description: Validates a username if it exist or not
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: matty
+ *     responses:
+ *       200:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 username:
+ *                   type: string
+ *                   example: "matty"
+ *       409:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Username already taken"
+ *                 suggestions:
+ *                   type: array
+ *                   example: ["matty_01", "matty_02", "matty_03"]
+ *       500:
+ *         description: Server error.
+ */
+router.post('/validate-username', validateUsername)
 
 
 
@@ -230,9 +285,12 @@ router.get('/google/callback',
 );
 
 router.get('/google/success', (req, res) => {
+    // Send token
+    const token = jwt.sign({ id: createdUser.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
     res.json({
         message: "Login successful",
-        user: req.user
+        token
     });
 });
 
