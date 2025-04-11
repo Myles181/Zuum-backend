@@ -1,7 +1,7 @@
 // routes/payment.routes.js
 const router = require('express').Router();
 const { tokenRequired, onlyDev } = require('../middleware/Auth.middleware');
-const { createPayment, depositPayment, initializePaymentPlans } = require('../controllers/Payment.controller');
+const { createPayment, subscriptionPayment, initializePaymentPlans } = require('../controllers/Payment.controller');
 const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller');
 
 // /**
@@ -88,7 +88,7 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
 
 /**
 * @swagger
-* /api/payment/deposit:
+* /api/payment/subscription:
 *   get:
 *     summary: Initiates a payment deposit for subscription
 *     tags: [Payment]
@@ -132,7 +132,7 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
 *                   type: string
 *                   example: "Server error message"
 */
-router.get('/deposit', tokenRequired, onlyDev, depositPayment);
+router.get('/subscription', tokenRequired, onlyDev, subscriptionPayment);
 
 /**
  * @swagger

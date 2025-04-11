@@ -157,7 +157,7 @@ exports.initializePaymentPlans = async (req, res) => {
 //     }
 // };
 
-exports.depositPayment = async (req, res) => {
+exports.subscriptionPayment = async (req, res) => {
     const user = req.user;
     const userId = user.id;
     const planName = user.identity;

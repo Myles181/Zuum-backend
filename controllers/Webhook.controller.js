@@ -55,7 +55,7 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                         console.log(`User ${userId} subscription updated successfully.`);
                     }
                 }
-            } else if (meta?.payment_type === 'beat_payment') {
+            } else if (meta?.payment_type === 'deposit') {
                 return;
             }
         } catch (error) {

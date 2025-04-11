@@ -185,15 +185,15 @@ exports.updateProfile = async (req, res) => {
             }
             if (firstname) {
                 userUpdates.push(`firstname = $${paramIndex++}`);
-                userValues.push(username);
+                userValues.push(firstname);
             }
             if (lastname) {
                 userUpdates.push(`lastname = $${paramIndex++}`);
-                userValues.push(username);
+                userValues.push(lastname);
             }
             if (middlename) {
                 userUpdates.push(`middlename = $${paramIndex++}`);
-                userValues.push(username);
+                userValues.push(middlename);
             }
             if (email) {
                 userUpdates.push(`email = $${paramIndex++}`);
