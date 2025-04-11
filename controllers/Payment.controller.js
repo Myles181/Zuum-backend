@@ -1,7 +1,7 @@
 const db = require('../config/db.conf');
 const axios = require('axios');
 
-const FLUTTERWAVE_API_URL = 'https://api.flutterwave.com/v3/charges?type=bank_transfer';
+const FLUTTERWAVE_API_URL = 'https://api.flutterwave.com/v3/virtual-account-numbers';
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
 
 console.log(FLUTTERWAVE_SECRET_KEY);
@@ -40,122 +40,6 @@ exports.initializePaymentPlans = async (req, res) => {
         res.status(500).json({ status: false, error: error.message });
     }
 };
-
-// exports.depositPayment = async (req, res) => {
-//     const user = req.user;
-//     const userId = user.id;
-//     const planName = user.identity;
-//     let planResult;
-
-//     try {
-//         if (req.onlyDev === 'activated') {
-//             // return res.status(401).json({ status: false, error: 'Unauthorized' });
-
-//             // Fetch payment plan
-//             planResult = await db.query(
-//                 'SELECT * FROM payment_plans WHERE name = $1',
-//                 ['onlyDev']
-//             );
-//             if (! planResult.rows.length) {
-//                 planResult = await db.query('INSERT INTO payment_plans (name, description, amount, frequency) VALUES ($1, $2, $3, $4) RETURNING *', ['onlyDev', 'Test Plan', 50, 'monthly']);
-//             }
-//         }
-//         else {// Fetch payment plan
-//             planResult = await db.query(
-//                 'SELECT * FROM payment_plans WHERE name = $1',
-//                 [planName]
-//             );
-        
-//             if (planResult.rows.length === 0) {
-//                 return res.status(404).json({ status: false, error: 'Payment plan not found' });
-//             }
-//         }
-//         const plan = planResult.rows[0];
-//         // console.log(plan);
-
-//         // Check if user already on a plan
-//         const subscriptionExist = await db.query(`SELECT transaction_id, subscription_status FROM profile WHERE user_id = $1`, [userId]);
-//         if (subscriptionExist.rows[0].subscription_status === 'completed') {
-
-//             const transactionExists = await db.query(`
-//                 SELECT * FROM subscription_transactions
-//                 WHERE user_id = $1 AND transaction_id = $2`,
-//                 [userId, subscriptionExist.rows[0].transaction_id]
-//             );
-
-//             if (transactionExists.rowCount === 0 || transactionExists.rows[0].status !== 'success') {
-//                 // Change the Profile payment status to false
-//                 await db.query(
-//                     `UPDATE profile
-//                      SET subscription_status = $1
-//                      WHERE user_id = $2`,['false', userId]
-//                     );
-//             } else {
-//                 return res.status(409).json({ message: 'User already subscribed' });
-//             }
-//         }
-
-//         // Generate unique transaction reference
-//         const txRef = `fluxel-${userId}-${Date.now()}`;
-
-//         // Initiate bank transfer with Flutterwave
-//         const response = await axios.post(
-//             FLUTTERWAVE_API_URL,
-//             {
-//                 tx_ref: txRef,
-//                 amount: plan.amount,
-//                 currency: 'NGN',
-//                 email: req.user.email,
-//                 narration: `Payment for ${plan.name} plan`,
-//                 meta: {
-//                     payment_type: "subscription",
-//                     plan_name: plan.name,
-//                     user_id: userId
-//                 }
-//             },
-//             {
-//                 headers: {
-//                     Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
-//                     'Content-Type': 'application/json',
-//                 },
-//                 timeout: 50000,
-//             }
-//         );
-//         console.log(response.data);
-
-//         // Destructure correctly based on response structure
-//         const { status, meta } = response.data;
-//         if (status !== 'success') {
-//            throw new Error('Failed to initiate payment');
-//         }
-
-//         // Extract flw_ref from meta.authorization
-//         const flwRef = meta.authorization.transfer_reference; // Using transfer_reference as flw_ref
-
-//         // Store transaction
-//         await db.query(
-//         `INSERT INTO subscription_transactions (user_id, payment_plan_id, tx_ref, flw_ref, amount, currency, account_expiration)
-//         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-//         [userId, plan.id, txRef, flwRef, plan.amount, 'NGN', meta.authorization.account_expiration]
-//         );
-
-//         // Send response with bank transfer details
-//         res.status(200).json({
-//         status: true,
-//         message: 'Payment initiated. Please complete the bank transfer.',
-//         paymentDetails: {
-//             accountNumber: meta.authorization.transfer_account,
-//             bankName: meta.authorization.transfer_bank,
-//             amount: meta.authorization.transfer_amount,
-//             account_expiration: meta.authorization.account_expiration,
-//             reference: txRef,
-//         },
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ status: false, error: error.message });
-//     }
-// };
 
 exports.subscriptionPayment = async (req, res) => {
     const user = req.user;
@@ -272,6 +156,79 @@ exports.subscriptionPayment = async (req, res) => {
     }
 };
 
+exports.createVirtualAccount = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Generate a unique reference
+    const txRef = `deposit-${user.id}-${Date.now()}`;
+
+    // Call Flutterwave API to create virtual account
+    const response = await axios.post(
+      FLUTTERWAVE_API_URL,
+      {
+        email: user.email,
+        is_permanent: false,
+        bvn: "", // Optional: Include BVN if required
+        tx_ref: txRef,
+        phonenumber: user.phonenumber,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        amount: 100,
+        narration: `${user.firstname} ${user.lastname} Deposit Account`,
+        meta: {
+            user_id: user.id,
+            payment_type: 'deposit'
+        },
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    // Store the virtual account details in your database
+    const accountDetails = response.data.data;
+    const userId = user.id;
+    await saveAccountToDatabase(userId, accountDetails, txRef);
+
+    // Return success response with account details
+    return res.status(200).json({
+      status: true,
+      message: 'Virtual account created successfully',
+      data: {
+        accountNumber: accountDetails.account_number,
+        bankName: accountDetails.bank_name,
+        reference: txRef,
+        expiresAt: accountDetails.expiry_date
+      }
+    });
+    
+  } catch (error) {
+    console.error('Virtual account creation failed:', error.response?.data || error.message);
+    return res.status(500).json({
+      status: false,
+      message: 'Failed to create virtual account',
+      error: error.response?.data?.message || error.message
+    });
+  }
+};
+
+// Helper function to save to database
+async function saveAccountToDatabase(userId, accountDetails, reference) {
+  // Implement your database saving logic here
+  // Store userId, account_number, bank_name, reference, expiry_date, etc.
+  await db.query(`
+        INSERT INTO virtual_accounts (profile_id, order_ref, flw_ref, bank_name, account_number, created_at, expiry_date, amount)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [userId, accountDetails.order_ref, accountDetails.flw_ref, accountDetails.bank_name,
+            accountDetails.account_number, accountDetails.created_at, accountDetails.expiry_date, accountDetails.amount]
+    );
+  console.log("Account Details",accountDetails);
+  console.log("Reference", reference);
+}
 
 exports.transferFunds = async (req, res) => {
     const { tx_ref, amount, currency } = req.body; // Assuming these are passed in the request body

@@ -39,12 +39,15 @@ const createVirtualAccountTable = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS virtual_accounts (
                 id SERIAL PRIMARY KEY,
-                profile_id INT UNIQUE NOT NULL,
+                profile_id INT NOT NULL,
                 order_ref VARCHAR(255) NOT NULL,
                 flw_ref VARCHAR(255) NOT NULL,
                 bank_name VARCHAR(255) NOT NULL,
                 account_number VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                expiry_date TIMESTAMPTZ,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
                 REFERENCES profile(id) ON DELETE CASCADE

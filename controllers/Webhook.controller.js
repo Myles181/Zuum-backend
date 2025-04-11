@@ -55,13 +55,43 @@ exports.handleFlutterwaveWebhook = async (req, res) => {
                         console.log(`User ${userId} subscription updated successfully.`);
                     }
                 }
-            } else if (meta?.payment_type === 'deposit') {
-                return;
             }
         } catch (error) {
             console.error('Webhook processing error:', error);
         }
     }
+
+    else if (event === 'virtual-account.credited') {
+        try {
+            const { tx_ref, order_ref, status, flw_ref, bank_name, account_number, created_at, expiry_date, amount, meta } = data;
+            const userId = meta?.user_id;
+
+            if (meta?.payment_type === 'deposit') {
+                console.log(data);
+                console.log(userId);
+                console.log("Done");
+            }
+
+            await db.query(`
+                INSERT INTO virtual_accounts (tx_ref, order_ref, status, flw_ref, bank_name, account_number, created_at, expiry_date, amount, user_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                [tx_ref, order_ref, status, flw_ref, bank_name, account_number, created_at, expiry_date, amount, userId]
+            );
+
+            // Update balance
+            await db.query(`
+                UPDATE profile
+                SET balance = balance + $1
+                WHERE user_id = $2`,
+                [amount, userId]
+            );
+
+        } catch (error) {
+            console.error('Webhook processing error:', error);
+        }
+    }
+
+    console.log("I was here")
 
     res.status(200).json({ status: true, message: 'Webhook received' });
 };
