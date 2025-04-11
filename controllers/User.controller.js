@@ -155,7 +155,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     try {
-        const { firstname, lastname, middlename, username, email, phone_number, bio } = req.body;
+        const { firstname, lastname, middlename, username, email, phonenumber, bio } = req.body;
         const userId = req.user.id;
         let imageUrl, coverImageUrl;
         let emailVerificationSent = false;
@@ -174,7 +174,7 @@ exports.updateProfile = async (req, res) => {
         }
 
         // Update users table if any user fields are provided
-        if (username || email || phone_number || firstname || middlename || lastname) {
+        if (username || email || phonenumber || firstname || middlename || lastname) {
             const userUpdates = [];
             const userValues = [];
             let paramIndex = 1;
@@ -201,9 +201,9 @@ exports.updateProfile = async (req, res) => {
                 userUpdates.push(`email_verified = $${paramIndex++}`);
                 userValues.push(false);
             }
-            if (phone_number) {
-                userUpdates.push(`phone_number = $${paramIndex++}`);
-                userValues.push(phone_number);
+            if (phonenumber) {
+                userUpdates.push(`phonenumber = $${paramIndex++}`);
+                userValues.push(phonenumber);
             }
 
             userValues.push(userId);
