@@ -142,8 +142,9 @@ exports.tokenProfileRequired = async (req, res, next) => {
 
 
         // Check if the user exists
-        const userData = await db.query("SELECT * FROM users WHERE id = $1 AND deleted = false", [decoded.id]);
-        if (userData.rows.length === 0) { // Fixed condition - userData is a query result object
+        const userData = await db.query(`SELECT * FROM users WHERE id = $1 AND deleted = false`, [decoded.id]);
+
+        if (userData.rows.length === 0) {
             console.log("User does not exist"); // Fixed typo in message
             return res.status(404).json({ status: false, error: 'User not found' });
         }

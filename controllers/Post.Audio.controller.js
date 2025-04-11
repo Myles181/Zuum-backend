@@ -25,7 +25,7 @@ exports.createAudioPost = async (req, res) => {
         if (req.files && req.files.cover_photo && req.files.audio_upload) {
 
             // Check if the audio upload is a valid MP3 file
-            const fileExtension = path.extreme(req.files.audio_upload.name).toLowerCase();
+            const fileExtension = path.extname(req.files.audio_upload.name).toLowerCase();
             if (fileExtension !== '.mp3') {
                 return res.status(406).json({ error: 'Audio file must be in MP3 format' });
             }
@@ -106,7 +106,7 @@ exports.updateAudioPost = async (req, res) => {
         if (req.files?.audio_upload) {
 
             // Check if the audio upload is a valid MP3 file
-            const fileExtension = path.extreme(req.files.audio_upload.name).toLowerCase();
+            const fileExtension = path.extname(req.files.audio_upload.name).toLowerCase();
             if (fileExtension !== '.mp3') {
                 return res.status(400).json({ error: 'Audio file must be in MP3 format' });
             }
