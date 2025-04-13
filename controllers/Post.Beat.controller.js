@@ -35,7 +35,7 @@ exports.createBeatPost = async (req, res) => {
         const postResult = await db.query(
             `INSERT INTO post_audio_sell 
             (profile_id, caption, description, audio_upload, cover_photo, amount, total_supply)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7) 
             RETURNING *`,
             [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, amount, total_supply]
         );
