@@ -14,9 +14,9 @@ exports.initializePaymentPlans = async (req, res) => {
 
     try {
         const plans = [
-            { name: 'artist', description: 'Annual plan for artists', amount: 15000 },
-            { name: 'label', description: 'Annual plan for labels', amount: 30000 },
-            { name: 'producer', description: 'Annual plan for producers', amount: 20000 },
+            { name: 'artist', description: 'Annual plan for artists', amount: 16425.00 },
+            { name: 'label', description: 'Annual plan for labels', amount: 32770.00 },
+            { name: 'producer', description: 'Annual plan for producers', amount: 21860.00 },
         ];
 
         for (const plan of plans) {
@@ -49,19 +49,9 @@ exports.subscriptionPayment = async (req, res) => {
 
     try {
         // Step 1: Get payment plan
-        if (req.onlyDev === 'activated') {
-            planResult = await db.query('SELECT * FROM payment_plans WHERE name = $1', ['onlyDev']);
-            if (!planResult.rows.length) {
-                planResult = await db.query(
-                    'INSERT INTO payment_plans (name, description, amount, frequency) VALUES ($1, $2, $3, $4) RETURNING *',
-                    ['onlyDev', 'Test Plan', 50, 'monthly']
-                );
-            }
-        } else {
-            planResult = await db.query('SELECT * FROM payment_plans WHERE name = $1', [planName]);
-            if (!planResult.rows.length) {
-                return res.status(404).json({ status: false, error: 'Payment plan not found' });
-            }
+        planResult = await db.query('SELECT * FROM payment_plans WHERE name = $1', [planName]);
+        if (!planResult.rows.length) {
+            return res.status(404).json({ status: false, error: 'Payment plan not found' });
         }
 
         const plan = planResult.rows[0];
