@@ -12,7 +12,7 @@ const { createBeatPost,
     getBeatPosts
  } = require('../controllers/Post.Beat.controller');
 
-const { tokenProfileRequired } = require('../middleware/Auth.middleware');
+const { tokenProfileRequired, producerTokenRequired } = require('../middleware/Auth.middleware');
 const router = express.Router();
 
 /**
@@ -51,7 +51,7 @@ const router = express.Router();
  *       500:
  *         description: Server error.
  */
-router.post('/create', tokenProfileRequired, createBeatPost);
+router.post('/create', producerTokenRequired, createBeatPost);
 
 /**
  * @swagger
@@ -93,7 +93,7 @@ router.post('/create', tokenProfileRequired, createBeatPost);
  *       500:
  *         description: Server error.
  */
-router.put('/update', tokenProfileRequired, updateBeatPost);
+router.put('/update', producerTokenRequired, updateBeatPost);
 
 /**
  * @swagger
@@ -121,7 +121,7 @@ router.put('/update', tokenProfileRequired, updateBeatPost);
  *       500:
  *         description: Server error.
  */
-router.delete('/delete', tokenProfileRequired, deleteBeatPost);
+router.delete('/delete', producerTokenRequired, deleteBeatPost);
 
 /**
  * @swagger

@@ -164,7 +164,7 @@ exports.createVirtualAccount = async (req, res) => {
         phonenumber: user.phonenumber,
         firstname: user.firstname,
         lastname: user.lastname,
-        amount: 100,
+        amount: 1000,
         narration: `${user.firstname} ${user.lastname} Deposit Account`,
         meta: {
             user_id: user.id,
@@ -206,6 +206,99 @@ exports.createVirtualAccount = async (req, res) => {
   }
 };
 
+
+exports.withdrawFunds = async (req, res) => {
+    let { amount, accountNumber, bankCode, save } = req.body;
+    const user = req.user;
+    const charge = 0; // Adjust if there's a withdrawal fee
+
+    try {
+        // 1. Check if user has enough balance
+        if ((amount + charge) > user.balance) {
+            return res.status(406).json({ message: 'Insufficient funds' });
+        }
+
+        // 2. Initiate the transfer via Flutterwave
+        if (!accountNumber || !bankCode) {
+            let accountDetails = await db.query(`SELECT * FROM deposit_accounts WHERE user_id = $1`, [user.id]);
+            if (accountDetails.rowCount) return res.status(400).json({ message: 'account number and bankcode are required' });
+
+            accountNumber = accountDetails.rows[0].accountNumber;
+            bankCode = accountDetails.rows[0].bankCode;
+        }
+
+        const transferPayload = {
+            account_bank: bankCode, // e.g. "044" for Access Bank
+            account_number: accountNumber,
+            amount: amount,
+            narration: 'Withdrawal from wallet',
+            currency: 'NGN',
+            reference: `wd_${Date.now()}`, // unique ref
+            // callback_url: 'https://yourdomain.com/api/flutterwave/transfer-callback',
+            debit_currency: 'NGN',
+        };
+
+        const response = await axios.post(
+            'https://api.flutterwave.com/v3/transfers',
+            transferPayload,
+            {
+                headers: {
+                    Authorization: `Bearer ${FLW_SECRET_KEY}`,
+                },
+            }
+        );
+
+        const transfer = response.data;
+
+        if (transfer.status === 'success') {
+            // 3. Deduct balance from user and save transaction
+            user.balance -= (amount + charge);
+            await user.save();
+
+            // 4. Save transaction details to database
+            await db.query(
+                `INSERT INTO transactions (user_id, amount, type, status, reference) VALUES ($1, $2, $3, $4, $5)`,
+                [user.id, amount, 'withdrawal', 'success', transfer.data.id]
+            );
+
+            // 5. Save user account details
+            if (save === true) {
+                await saveAccountDetails(user.id, bankCode, accountNumber);
+            }
+
+            return res.status(200).json({
+                message: 'Withdrawal initiated successfully',
+                data: transfer.data
+            });
+        } else {
+            return res.status(400).json({
+                message: 'Flutterwave transfer failed',
+                details: transfer.message
+            });
+        }
+
+    } catch (error) {
+        console.error('Withdrawal error:', error.response?.data || error.message);
+        return res.status(500).json({
+            status: false,
+            message: 'Failed to initiate withdrawal',
+            error: error.response?.data?.message || error.message
+        });
+    }
+};
+
+exports.getAccountDetails = async (req, res) => {
+    const account = await db.query(
+        `SELECT * FROM deposit_accounts
+         WHERE user_id = $1`, [req.user.id]
+    );
+
+    if (account.rowCount === 0) return res.status(404).json({ message: 'No account found for this user' });
+
+    // Return the successfully 
+    return res.status(200).json({ message: 'Successfully retrived account details', account: account.rows[0] });
+}
+
 // Helper function to save to database
 async function saveAccountToDatabase(userId, accountDetails, reference) {
   // Implement your database saving logic here
@@ -219,6 +312,17 @@ async function saveAccountToDatabase(userId, accountDetails, reference) {
   console.log("Account Details",accountDetails);
   console.log("Reference", reference);
 }
+
+// Helper function to deposit accounts
+async function saveAccountDetails(userId, bankCode, accountNumber) {
+    // Implement your database saving logic here
+    // Store userId, account_number, bank_name, reference, expiry_date, etc.
+    await db.query(`
+        INSERT INTO deposit_accounts (user_id, bank_code, account_number)
+        VALUES ($1, $2, $3)`,
+        [userId, bankCode, accountNumber]
+    );
+};
 
 exports.transferFunds = async (req, res) => {
     const { tx_ref, amount, currency } = req.body; // Assuming these are passed in the request body

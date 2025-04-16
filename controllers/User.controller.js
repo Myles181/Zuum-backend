@@ -654,4 +654,78 @@ exports.GetVirtualAccount = async (req, res) => {
     }
 };
 
+exports.addUsersToLabel = async (req, res) => {
+    const { member_id, invitation_message } = req.body;
+    const profile = req.profile;
 
+    // Check if the member exist
+    const userExist = await db.query(`
+        SELECT id FROM profile WHERE id = $
+        `, [member_id]
+    );
+
+    if (userExist.rowCount === 0) return res.status(404).json({ message: 'User does not exist' });
+
+    // INVITE
+    const memberExists = await db.query(`
+        SELECT * FROM label WHERE member_id = $1`,
+        [member_id]
+    );
+
+    if (memberExists.rowCount === 0) {
+        // Invite or add the user to label
+        const label_id = await db.query(`
+            INSERT INTO label (owner_id, member_id, invitation_message)
+            VALUES ($1, $2, $3) RETURNING id`, [profile.id, member_id, invitation_message]
+        );
+
+        // Email the user of member and add push notification
+        // Read the label.html template dynamically
+        const emailTemplatePath = path.join(__dirname, 'templates/label.html');
+        fs.readFile(emailTemplatePath, 'utf8', (err, htmlContent) => {
+            if (err) {
+                console.error('Error reading email template:', err);
+                return res.status(500).json({ error: 'Error generating email content.' });
+            }
+
+            // Replace placeholders with actual values
+            const updatedHtml = htmlContent
+                .replace('{{LABEL_NAME}}', userExist.rows.label_name)
+                .replace('{{INVITATION_LINK}}', `${process.env.FRONTEND_URL}/${label_id}/label_invitation.html`);
+
+            // Send OTP via Email with the updated template
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "Label Invitation",
+                html: updatedHtml,  // Use the updated HTML template
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending email:', error);
+                    return res.status(500).json({ error: 'Error sending email.' });
+                } else {
+                    console.log('Email sent:', info.response);
+                }
+            });
+        });
+    }
+
+    else if (memberExists.rows.status === 'pending'){
+        // Return statement that user hasn't accepted
+        return res.status(406).json({ message: 'Pending invitation' });
+    }
+    else if (memberExists.rows.status === 'ex-member') {
+        // Re-invite the ex-member
+        await db.query(`
+            UPDATE label
+            SET status = 'pending' WHERE member_id = $1
+            `, [member_id]
+        );
+
+        // Email the user of member and add push notification
+
+    }
+
+}

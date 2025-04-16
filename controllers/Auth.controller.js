@@ -26,7 +26,7 @@ exports.signup = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    let { username, email, password, identity, firstname, lastname, middlename } = req.body;
+    let { username, email, password, identity, firstname, lastname, middlename, label_name } = req.body;
 
     try {
         // Check if email already exists
@@ -39,6 +39,8 @@ exports.signup = async (req, res) => {
         const validIdentities = ['artist', 'record_label', 'producer'];
 
         if (!validIdentities.includes(identity)) identity = 'artist';
+
+        if (identity === 'record_label' && !label_name) return res.status(400).json({message: 'Label name is required'});
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -56,11 +58,6 @@ exports.signup = async (req, res) => {
             "INSERT INTO profile (user_id) VALUES ($1)",
             [userId]
         )
-
-        // const customerCode = 'CUS_'+userId;
-        
-        // Create user account
-        // await createVirtualAccount(customerCode, username);
 
         // Generate and save OTP
         const otp = generateOtp();

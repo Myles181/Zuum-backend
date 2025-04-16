@@ -9,6 +9,7 @@ const createUserTable = async () => {
                 username VARCHAR(255) NOT NULL,
                 firstname VARCHAR(255) NOT NULL,
                 lastname VARCHAR(255) NOT NULL,
+                label_name VARCHAR(255),
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255),
                 google_id VARCHAR(255) UNIQUE,
@@ -51,4 +52,31 @@ const createOtpTable = async () => {
 }
 // Run this function before starting the server
 
-module.exports = { createUserTable, createOtpTable };
+// Create a label -- status (member, ex-member, pending, blocked)
+const createLabelTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS label (
+                id SERIAL PRIMARY KEY,
+                owner_id INT NOT NULL,
+                member_id INT NOT NULL,
+                invitation_message TEXT,
+                status VARCHAR(10) NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+
+                CONSTRAINT fk_profile FOREIGN KEY (member_id)
+                REFERENCES profile(id) ON DELETE CASCADE
+
+                CONSTRAINT fk_profile FOREIGN KEY (owner_id)
+                REFERENCES profile(id) ON DELETE CASCADE
+            )
+        `);
+
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
+
+module.exports = { createUserTable, createOtpTable, createLabelTable };

@@ -6,9 +6,9 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
 
 /**
  * @swagger
- * /api/payment/create-virtual-account:
+ * /api/payment/deposit-account:
  *   get:
- *     summary: Create a bank transfer payment
+ *     summary: Deposit a funds with transfer payment
  *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
@@ -84,7 +84,71 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
  *                   type: string
  *                   example: 'Failed to initiate payment'
  */
-router.get('/create-virtual-account', tokenRequired, createVirtualAccount);
+router.get('/deposit-account', tokenRequired, createVirtualAccount);
+
+/**
+ * @swagger
+ * /api/payment/withdrawal:
+ *   get:
+ *     summary: Withdrawal of funds
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Withdrawal successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'Withdrawal initiated successfully'
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Authentication token is missing or invalid.'
+ *       406:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Insufficient funds for withdrawal'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: 'Failed to initiate payment'
+ */
+router.post('/withdrawal', tokenRequired, createVirtualAccount);
 
 /**
 * @swagger
@@ -132,7 +196,7 @@ router.get('/create-virtual-account', tokenRequired, createVirtualAccount);
 *                   type: string
 *                   example: "Server error message"
 */
-router.get('/subscription', tokenRequired, onlyDev, subscriptionPayment);
+router.get('/subscription', tokenRequired, subscriptionPayment);
 
 /**
  * @swagger
@@ -156,7 +220,6 @@ router.get('/subscription', tokenRequired, onlyDev, subscriptionPayment);
  *         description: Webhook received
  */
 router.post('/webhooks/flutterwave', handleFlutterwaveWebhook);
-
 
 /**
  * @swagger
