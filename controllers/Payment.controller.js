@@ -221,7 +221,7 @@ exports.withdrawFunds = async (req, res) => {
         // 2. Initiate the transfer via Flutterwave
         if (!accountNumber || !bankCode) {
             let accountDetails = await db.query(`SELECT * FROM deposit_accounts WHERE user_id = $1`, [user.id]);
-            if (accountDetails.rowCount) return res.status(400).json({ message: 'account number and bankcode are required' });
+            if (accountDetails.rowCount) return res.status(400).json({ status: false, error: 'Account number and bankcode are required' });
 
             accountNumber = accountDetails.rows[0].accountNumber;
             bankCode = accountDetails.rows[0].bankCode;
@@ -271,7 +271,7 @@ exports.withdrawFunds = async (req, res) => {
                 data: transfer.data
             });
         } else {
-            return res.status(400).json({
+            return res.status(500).json({
                 message: 'Flutterwave transfer failed',
                 details: transfer.message
             });
@@ -299,6 +299,61 @@ exports.getAccountDetails = async (req, res) => {
     return res.status(200).json({ message: 'Successfully retrived account details', account: account.rows[0] });
 }
 
+
+exports.transactionHistory = async (req, res) => {
+    // Get all transactions 
+    let transactionHistory = [];
+
+    const transactions = await db.query(
+        `SELECT * FROM transactions
+         WHERE user_id = $1`, [req.user.id]
+    );
+
+    const audio_sell_transactions = await db.query(
+        `SELECT * FROM audio_sell_transactions
+         WHERE user_id = $1`, [req.user.id]
+    );
+
+    const subscription_transactions = await db.query(
+        `SELECT * FROM subscription_transactions
+         WHERE user_id = $1 AND status = 'successful'`, [req.user.id]
+    );
+
+    for (const i of transactions.rows) {
+        transactionHistory.push({
+            id: i.id,
+            amount: i.amount,
+            type: i.type,
+            status: i.status,
+            created_at: i.created_at
+        });
+    }
+
+    for (const i of audio_sell_transactions.rows) {
+        transactionHistory.push({
+            id: i.id,
+            amount: i.amount,
+            type: 'audio_sell',
+            postId: i.post_id,
+            status: 'successful',
+            created_at: i.created_at
+        });
+    }
+
+    for (const i of subscription_transactions.rows) {
+        transactionHistory.push({
+            id: i.id,
+            amount: i.amount,
+            type: 'subscription',
+            status: i.status,
+            created_at: i.created_at
+        });
+    }
+
+    return res.status(200).json({ status: true, data: transactionHistory });
+}
+
+
 // Helper function to save to database
 async function saveAccountToDatabase(userId, accountDetails, reference) {
   // Implement your database saving logic here
@@ -323,49 +378,4 @@ async function saveAccountDetails(userId, bankCode, accountNumber) {
         [userId, bankCode, accountNumber]
     );
 };
-
-exports.transferFunds = async (req, res) => {
-    const { tx_ref, amount, currency } = req.body; // Assuming these are passed in the request body
-
-    try {
-        // Check if transaction exists
-        const transactionResult = await db.query(
-            'SELECT * FROM subscription_transactions WHERE tx_ref = $1',
-            [tx_ref]
-        );
-
-        if (transactionResult.rows.length === 0) {
-            return res.status(404).json({ status: false, error: 'Transaction not found' });
-        }
-
-        const transaction = transactionResult.rows[0];
-
-        // Update transaction status to success
-        await db.query(
-            'UPDATE subscription_transactions SET status = $1 WHERE tx_ref = $2',
-            ['success', tx_ref]
-        );
-
-        // Update user subscription status
-        await db.query(
-            `INSERT INTO user_subscriptions (user_id, payment_plan_id, start_date, end_date)
-             VALUES ($1, $2, NOW(), NOW() + INTERVAL '1 year')`,
-            [transaction.user_id, transaction.payment_plan_id]
-        );
-
-        res.status(200).json({
-            status: true,
-            message: 'Payment successful',
-            transaction: {
-                tx_ref,
-                amount,
-                currency,
-                status: 'success',
-            },
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ status: false, error: error.message });
-    }
-}
 

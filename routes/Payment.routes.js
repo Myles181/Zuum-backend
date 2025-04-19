@@ -1,7 +1,7 @@
 // routes/payment.routes.js
 const router = require('express').Router();
 const { tokenRequired, onlyDev } = require('../middleware/Auth.middleware');
-const { createVirtualAccount, subscriptionPayment, initializePaymentPlans } = require('../controllers/Payment.controller');
+const { createVirtualAccount, subscriptionPayment, initializePaymentPlans, getAccountDetails, withdrawFunds } = require('../controllers/Payment.controller');
 const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller');
 
 /**
@@ -9,7 +9,7 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
  * /api/payment/deposit-account:
  *   get:
  *     summary: Deposit a funds with transfer payment
- *     tags: [Payment]
+ *     tags: [Payment, Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -89,14 +89,59 @@ router.get('/deposit-account', tokenRequired, createVirtualAccount);
 /**
  * @swagger
  * /api/payment/withdrawal:
- *   get:
- *     summary: Withdrawal of funds
- *     tags: [Payment]
+ *   post:
+ *     summary: Initiate a withdrawal. When a user hits save=true then the withdrawal account inputted saves. if not it doesn't. When a user saves the withdrawal account the accountNumber and bankCode can be left empty and save should be false
+ *     tags: [Payment, Dashboard]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: float
+ *                 example: "5000.00"
+ *               accountNumber:
+ *                 type: string
+ *                 example: "03984983983"
+ *               bankCode:
+ *                 type: string
+ *                 example: '048'
+ *               save:
+ *                 type: boolean
+ *                 example: true | false
+ * 
  *     responses:
  *       200:
- *         description: Withdrawal successful
+ *         description: Withdrawal initiated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Withdrawal initiated successfully'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bank_code:
+ *                       type: string
+ *                       example: '048'
+ *                     bank_name:
+ *                       type: string
+ *                       example: 'Accessbank'
+ *                     amount:
+ *                       type: string
+ *                       example: '1000.00'
+ *                     tx_ref:
+ *                       type: string
+ *                       example: 'flw-1234567890'
+ *       400:
+ *         description: 
  *         content:
  *           application/json:
  *             schema:
@@ -104,10 +149,11 @@ router.get('/deposit-account', tokenRequired, createVirtualAccount);
  *               properties:
  *                 status:
  *                   type: boolean
- *                   example: true
- *                 message:
+ *                   example: false
+ *                 error:
  *                   type: string
- *                   example: 'Withdrawal initiated successfully'
+ *                   example: 'Account number and bankcode are required'
+ * 
  *       401:
  *         description: Unauthorized - missing or invalid token
  *         content:
@@ -122,18 +168,16 @@ router.get('/deposit-account', tokenRequired, createVirtualAccount);
  *                   type: string
  *                   example: 'Authentication token is missing or invalid.'
  *       406:
- *         description: Insufficient funds
+ *         description: Balance not enough
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: boolean
- *                   example: false
- *                 error:
+ *                 message:
  *                   type: string
- *                   example: 'Insufficient funds for withdrawal'
+ *                   example: 'Insufficient funds'
+ * 
  *       500:
  *         description: Server error
  *         content:
@@ -146,9 +190,9 @@ router.get('/deposit-account', tokenRequired, createVirtualAccount);
  *                   example: false
  *                 error:
  *                   type: string
- *                   example: 'Failed to initiate payment'
+ *                   example: 'Failed to initiate withdrawal'
  */
-router.post('/withdrawal', tokenRequired, createVirtualAccount);
+router.post('/withdrawal', tokenRequired, withdrawFunds);
 
 /**
 * @swagger
@@ -197,6 +241,46 @@ router.post('/withdrawal', tokenRequired, createVirtualAccount);
 *                   example: "Server error message"
 */
 router.get('/subscription', tokenRequired, subscriptionPayment);
+
+/**
+* @swagger
+* /api/payment/account-details:
+*   get:
+*     summary: Get withdrawal account details
+*     tags: [Payment, Dashboard]
+*     security:
+*       - bearerAuth: []
+
+*     responses:
+*       200:
+*         description: Successfully retrived account details
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 status:
+*                   type: boolean
+*                   example: true
+*                 message:
+*                   type: string
+*                   example: "Successfully retrived account details"
+*                 account:
+*                   type: object
+*                   properties:
+*                     user_id: 
+*                       type: string
+*                       example: "3"
+*                     bank_code: 
+*                       type: string
+*                       example: "9826"
+*                     account_number:
+*                       type: string
+*                       example: "9839217824748"
+*       404:
+*         description: No account found for this user
+*/
+router.get('/account-details', tokenRequired, getAccountDetails);
 
 /**
  * @swagger

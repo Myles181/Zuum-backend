@@ -37,7 +37,9 @@ const checkSubscriptionExpirations = async () => {
                 );
 
                 console.log(`Subscription expired for user ${sub.user_id}, tx_ref: ${sub.tx_ref}`);
+
                 // TODO: Optionally notify user (e.g., via email)
+                
             }
         }
     } catch (error) {
