@@ -16,7 +16,6 @@ const createPostAudioForSaleTable = async () => {
                 total_buyers INT DEFAULT 0,
 
                 promoted BOOLEAN DEFAULT false,
-                promotion_transaction_id INT NOT NULL,
 
                 likes INT NOT NULL DEFAULT 0,
                 unlikes INT NOT NULL DEFAULT 0,
@@ -26,9 +25,6 @@ const createPostAudioForSaleTable = async () => {
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
-
-                CONSTRAINT fk_promotion FOREIGN KEY (promotion_transaction_id)
-                REFERENCES promotion_transactions(id) ON DELETE CASCADE
             )
         `);
         // console.log('✅ Post Beat table is ready!');

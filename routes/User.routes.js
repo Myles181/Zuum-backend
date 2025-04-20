@@ -1,7 +1,8 @@
 const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator, virtualAccountValidator } = require('../middleware/User.middleware');
-const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms, CreateVirtualAccount, GetVirtualAccount } = require('../controllers/User.controller');
+const { transactionHistoryController } = require('../controllers/Payment.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -457,6 +458,67 @@ router.post('/get-room-id', getRoomId);
  *                 error: "Internal server error"
  */
 router.get('/get-rooms', tokenProfileRequired, getChatRooms);
+
+
+/**
+ * @swagger
+ * /api/user/transactions:
+ *   get:
+ *     summary: Get all transaction history for the authenticated user
+ *     description: Returns a list of transactions including promotions, audio sales, and subscriptions
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of transaction history
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       amount:
+ *                         type: number
+ *                       type:
+ *                         type: string
+ *                         example: "promotion_audio"
+ *                       status:
+ *                         type: string
+ *                         example: "successful"
+ *                       postId:
+ *                         type: string
+ *                         nullable: true
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         description: Unauthorized - Token missing or invalid
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.get('/transactions', tokenProfileRequired, transactionHistoryController);
 
 module.exports = router;
 

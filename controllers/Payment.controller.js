@@ -299,8 +299,84 @@ exports.getAccountDetails = async (req, res) => {
     return res.status(200).json({ message: 'Successfully retrived account details', account: account.rows[0] });
 }
 
+exports.getPaymentPlan = async (req, res) => {
+    // Get the payment plan for the user
+    const plan = await db.query(
+        `SELECT * FROM payment_plans
+         WHERE name = $1`, [req.user.identity]
+    );
 
-exports.transactionHistory = async (req, res) => {
+    if (plan.rowCount === 0) return res.status(404).json({ message: 'No payment plan found for this user' });
+
+    // Return the successfully 
+    return res.status(200).json({ message: 'Successfully retrived account details', paymentDetails: plan.rows[0] });
+}
+
+exports.promotePost = async (req, res) => {
+    const { postId, type } = req.body;
+    const profile = req.profile;
+
+    const amount = 5000;
+    const validTypes = ['beat', 'audio', 'video'];
+
+    // Validate type
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: 'Invalid type' });
+    }
+
+    // Get the correct table name
+    let tableName;
+    if (type === 'beat') {
+        tableName = 'post_audio_sell';
+        transactionType = 'promotion_audio_sell';
+    } else if (type === 'audio') {
+        tableName = 'post_audio';
+        transactionType = 'promotion_audio';
+    } else {
+        tableName = 'post_video';
+        transactionType = 'promotion_video';
+    }
+
+    try {
+        // Check if post exists
+        const postResult = await db.query(`SELECT id FROM ${tableName} WHERE id = $1`, [postId]);
+        if (postResult.rowCount === 0) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Check user balance
+        if (profile.balance < amount) {
+            return res.status(406).json({ message: 'Insufficient funds' });
+        }
+
+        // Deduct balance
+        await db.query(
+            `UPDATE profile SET balance = balance - $1 WHERE id = $2`,
+            [amount, profile.id]
+        );
+
+        // Promote the post
+        await db.query(`UPDATE ${tableName} SET promoted = $1 WHERE id = $2`, [true, postId]);
+
+        // Record transaction
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, post_id, status, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`,
+            [profile.id, amount, transactionType, postId, 'successful']
+        );
+
+        return res.status(200).json({
+            message: 'Post promoted successfully',
+            postId,
+            type,
+        });
+    } catch (error) {
+        console.error('Error promoting post:', error.message);
+        return res.status(500).json({ message: 'Something went wrong' });
+    }
+};
+
+
+exports.transactionHistoryController = async (req, res) => {
     // Get all transactions 
     let transactionHistory = [];
 
@@ -372,6 +448,14 @@ async function saveAccountToDatabase(userId, accountDetails, reference) {
 async function saveAccountDetails(userId, bankCode, accountNumber) {
     // Implement your database saving logic here
     // Store userId, account_number, bank_name, reference, expiry_date, etc.
+    const accountDetails = await db.query(`SELECT * FROM deposit_accounts WHERE user_id = $1`, [userId]);
+    if (accountDetails.rowCount) {
+        return await db.query(`
+            UPDATE deposit_accounts SET bank_code = $1, account_number = $2 WHERE user_id = $3`,
+            [bankCode, accountNumber, userId]
+        );
+    }
+    
     await db.query(`
         INSERT INTO deposit_accounts (user_id, bank_code, account_number)
         VALUES ($1, $2, $3)`,

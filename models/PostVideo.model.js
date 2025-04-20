@@ -16,15 +16,11 @@ const createPostVideoTable = async () => {
                 comments INT NOT NULL DEFAULT 0,
                 shares INT NOT NULL DEFAULT 0,
                 promoted BOOLEAN DEFAULT false,
-                promotion_transaction_id INT NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
-
-                CONSTRAINT fk_promotion FOREIGN KEY (promotion_transaction_id)
-                REFERENCES promotion_transactions(id) ON DELETE CASCADE
             )
         `);
         // console.log('✅ Post Video table is ready!');

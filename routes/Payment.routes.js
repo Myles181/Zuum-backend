@@ -1,7 +1,7 @@
 // routes/payment.routes.js
 const router = require('express').Router();
-const { tokenRequired, onlyDev } = require('../middleware/Auth.middleware');
-const { createVirtualAccount, subscriptionPayment, initializePaymentPlans, getAccountDetails, withdrawFunds } = require('../controllers/Payment.controller');
+const { tokenRequired, onlyDev, tokenProfileRequired } = require('../middleware/Auth.middleware');
+const { createVirtualAccount, subscriptionPayment, initializePaymentPlans, getAccountDetails, withdrawFunds, getPaymentPlan, promotePost, transactionHistory } = require('../controllers/Payment.controller');
 const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller');
 
 /**
@@ -281,6 +281,132 @@ router.get('/subscription', tokenRequired, subscriptionPayment);
 *         description: No account found for this user
 */
 router.get('/account-details', tokenRequired, getAccountDetails);
+
+/**
+* @swagger
+* /api/payment/create:
+*   get:
+*     summary: Get
+*     tags: [Payment, Dashboard]
+*     security:
+*       - bearerAuth: []
+
+*     responses:
+*       200:
+*         description: Successfully retrived account details
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 status:
+*                   type: boolean
+*                   example: true
+*                 message:
+*                   type: string
+*                   example: "Successfully retrived account details"
+*                 account:
+*                   type: object
+*                   properties:
+*                     user_id: 
+*                       type: string
+*                       example: "3"
+*                     bank_code: 
+*                       type: string
+*                       example: "9826"
+*                     account_number:
+*                       type: string
+*                       example: "9839217824748"
+*       404:
+*         description: No account found for this user
+*/
+router.get('/create', tokenRequired, getPaymentPlan)
+
+/**
+ * @swagger
+ * /api/payment/promote:
+ *   post:
+ *     summary: Promote a post (audio, video, or beat)
+ *     description: Deducts a fee from user's balance and promotes the specified post if it exists.
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - postId
+ *               - type
+ *             properties:
+ *               postId:
+ *                 type: string
+ *                 example: "125"
+ *               type:
+ *                 type: string
+ *                 enum: [audio, video, beat]
+ *                 example: "audio"
+ *     responses:
+ *       200:
+ *         description: Post promoted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Post promoted successfully"
+ *                 postId:
+ *                   type: string
+ *                   example: "125"
+ *                 type:
+ *                   type: string
+ *                   example: "audio"
+ *       400:
+ *         description: Invalid post type
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid type"
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Post not found"
+ *       406:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Insufficient funds"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ */
+router.post('/promote', tokenProfileRequired, promotePost);
 
 /**
  * @swagger
