@@ -34,7 +34,7 @@ const corsOptions = {
   origin: [
     'https://zuum-backend-qs8x.onrender.com',
     'http://localhost:3000', 'http://localhost:5000',
-    'http://localhost:5173', 'https://zuum-frontend.onrender.com',
+    'http://localhost:5173', 'https://zuum-frontend.onrender.com', 'https://www.zuummusicpr.com',
     'https://zuum-frontend.vercel.app', 'https://df7c-2c0f-2a80-ae2-6f10-a9e7-90ed-9460-456b.ngrok-free.app'], // Allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTION'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
