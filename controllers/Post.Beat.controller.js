@@ -29,11 +29,15 @@ exports.createBeatPost = async (req, res) => {
 
         // Handle file uploads to Cloudinary
         if (req.files && req.files.cover_photo && req.files.audio_upload) {
+            console.log("Stat time:",Date.now());
             cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
             cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
                 resource_type: "video",
+                folder: "beat_uploads",
+                format: "mp3",
                 chunk_size: 6000000,
             });
+            console.log("End time:",Date.now());
         } else {
             return res.status(400).json({ status: false, message: 'No files found' });
         }
@@ -437,6 +441,28 @@ exports.purchaseBeatPost = async (req, res) => {
         // Check if amount is equivalent to the beat amount
         if (postResult.rows[0].amount !== amount) return res.status(400).json({ message: 'Incorrect amount' });
 
+        // Check if the user if a dev
+        const userDev = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
+
+        if (userDev.rows[0].identity === "dev") {
+            console.log("This user is a dev");
+
+            // Add the audio in users purchased beats
+            await db.query(`
+                INSERT INTO audio_purchases (profile_id, post_id, audio_upload, amount_paid)
+                VALUES ($1, $2, $3, $4)`, [profile.id, postId, postResult.rows[0].audio_upload, amount]
+            );
+
+            await db.query(`
+                UPDATE post_audio_sell
+                SET total_buyers = total_buyers + 1
+                WHERE id = $1`, [postId]
+            );
+
+            return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
+
+        }
+
         // Check if user balance is upto 
         if (profile.balance < amount) return res.status(400).json({ status: false, message: "Insufficient balance" });
 
@@ -466,6 +492,14 @@ exports.purchaseBeatPost = async (req, res) => {
             SET total_buyers = total_buyers + 1
             WHERE id = $1`, [postId]
         );
+
+        // Add to the transactions
+        const beat_owner = await db.query(`
+            SELECT user_id FROM profile WHERE id = $1`, [postResult.rows[0].profile_id]
+        );
+        await db.query(`
+            INSERT INTO audio_sell_transactions (user_id, purchaser_id, amount, currency, post_id)
+            VALUES ($1, $2, $3, $4)`, [beat_owner.rows[0].user_id, profile.user_id, amount, "NGN", postId])
 
         // Send a success response
         return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
@@ -553,7 +587,7 @@ exports.getBeatPostById = async (req, res) => {
         const publicId = extractPublicId(post.audio_upload);
 
         // 👇 Create 30-second trimmed preview link
-        const previewAudioUrl = `${cloudinaryBase}/du_30/${publicId}.mp3`;
+        const previewAudioUrl = `${cloudinaryBase}/du_30/beat_uploads/${publicId}.mp3`;
 
         post.audio_upload = previewAudioUrl;
 
@@ -630,7 +664,7 @@ exports.getBeatPosts = async (req, res) => {
             const publicId = extractPublicId(post.audio_upload);
 
             // 👇 Create 30-second trimmed preview link
-            const previewAudioUrl = `${cloudinaryBase}/du_30/${publicId}.mp3`;
+            const previewAudioUrl = `${cloudinaryBase}/du_30/beat_uploads/${publicId}.mp3`;
 
             post.audio_upload = previewAudioUrl;
         }

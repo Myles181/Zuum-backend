@@ -518,7 +518,7 @@ router.get('/get-rooms', tokenProfileRequired, getChatRooms);
  *                 status: false
  *                 error: "Internal server error"
  */
-router.get('/transactions', tokenProfileRequired, transactionHistoryController);
+router.get('/transactions', tokenRequired, transactionHistoryController);
 
 module.exports = router;
 

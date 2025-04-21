@@ -339,9 +339,9 @@ exports.promotePost = async (req, res) => {
 
     try {
         // Check if post exists
-        const postResult = await db.query(`SELECT id FROM ${tableName} WHERE id = $1`, [postId]);
+        const postResult = await db.query(`SELECT id FROM ${tableName} WHERE id = $1 AND profile_id = $2`, [postId, profile.id]);
         if (postResult.rowCount === 0) {
-            return res.status(404).json({ message: 'Post not found' });
+            return res.status(404).json({ message: 'Post not found or Not post owner' });
         }
 
         // Check user balance
@@ -410,6 +410,7 @@ exports.transactionHistoryController = async (req, res) => {
             id: i.id,
             amount: i.amount,
             type: 'audio_sell',
+            purchaser_id: i.purchaser_id,
             postId: i.post_id,
             status: 'successful',
             created_at: i.created_at
