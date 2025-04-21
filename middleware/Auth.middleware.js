@@ -189,7 +189,7 @@ exports.producerTokenRequired = async (req, res, next) => {
         }
 
         // Check if the user has the right role/identity to access the endpoint
-        if (!validRoles.includes(userData.rows['identity'])) return res.status(401).json({ message: 'Role not allowed' });
+        if (!validRoles.includes(userData.rows[0].identity)) return res.status(401).json({ message: 'Role not allowed' });
 
         const profileData = await db.query("SELECT * FROM profile WHERE user_id = $1", [decoded.id]);
         // if (profileData && !profileData.rows[0].subscription_status) return res.status(401).json({ message: 'User is not on any subscription' });

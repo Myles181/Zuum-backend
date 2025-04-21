@@ -6,6 +6,13 @@ const cloudinary = require('cloudinary').v2;
 // const ffmpeg = require("fluent-ffmpeg");
 
 
+// Helper function
+function extractPublicId(fullUrl) {
+    const parts = fullUrl.split('/');
+    return parts.slice(-1)[0].split('.')[0]; // assumes filename.mp3
+}
+
+
 exports.createBeatPost = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -52,16 +59,6 @@ exports.createBeatPost = async (req, res) => {
     }
 };
 
-// const compressBeat = (inputPath, outputPath) => {
-//     return new Promise((resolve, reject) => {
-//         ffmpeg(inputPath)
-//             .audioBitrate("128k") // Adjust bitrate for smaller file
-//             .format("mp3")
-//             .save(outputPath)
-//             .on("end", () => resolve(outputPath))
-//             .on("error", (err) => reject(err));
-//     });
-// };
 
 exports.updateBeatPost = async (req, res) => {
     const errors = validationResult(req);
@@ -483,10 +480,10 @@ exports.getPurchasedBeats = async (req, res) => {
     try {
         const profile = req.profile;
 
-        const audios = await db.query(`SELECT * FROM post_audio_sell WHERE id = $1`, [profile.id]);
+        const audios = await db.query(`SELECT * FROM audio_purchases WHERE profile_id = $1`, [profile.id]);
+        if (audios.rowCount === 0) return res.status(200).json({ audios: [] });
 
         return res.status(200).json({ audios: audios.rows });
-
     } catch (error) {
         console.error("Error :", error);
         return res.status(500).json({ status: false, error: error.message });
@@ -550,7 +547,15 @@ exports.getBeatPostById = async (req, res) => {
             });
         }
 
-        const post = postResult.rows[0];
+        let post = postResult.rows[0];
+
+        const cloudinaryBase = "https://res.cloudinary.com/dkvj3fbg9/video/upload";
+        const publicId = extractPublicId(post.audio_upload);
+
+        // 👇 Create 30-second trimmed preview link
+        const previewAudioUrl = `${cloudinaryBase}/du_30/${publicId}.mp3`;
+
+        post.audio_upload = previewAudioUrl;
 
         // Query to get comments with commenter information
         const commentsResult = await db.query(
@@ -601,15 +606,34 @@ exports.getBeatPosts = async (req, res) => {
         console.log("")
 
         // Query to get posts with creator information
-        const postsResult = await db.query(
-            `SELECT p.*, u.username, pf.image, COUNT(*) OVER() AS total_count
-            FROM post_audio_sell p
-            JOIN profile pf ON p.profile_id = pf.id
-            JOIN users u ON pf.user_id = u.id
-            ORDER BY p.created_at DESC
-            LIMIT $1 OFFSET $2;`,
-            [limit, offset]
+        let postsResult = await db.query(
+            `SELECT 
+                p.*, 
+                u.username, 
+                pf.image, 
+                COUNT(*) OVER() AS total_count,
+                CASE 
+                    WHEN ap.id IS NOT NULL THEN true 
+                    ELSE false 
+                END AS has_purchased
+             FROM post_audio_sell p
+             JOIN profile pf ON p.profile_id = pf.id
+             JOIN users u ON pf.user_id = u.id
+             LEFT JOIN audio_purchases ap ON ap.post_id = p.id AND ap.profile_id = $3
+             ORDER BY p.created_at DESC
+             LIMIT $1 OFFSET $2;`,
+            [limit, offset, req.profile.id]  // $1 = limit, $2 = offset, $3 = current user profile ID
         );
+
+        for (const post of postsResult.rows) {
+            const cloudinaryBase = "https://res.cloudinary.com/dkvj3fbg9/video/upload";
+            const publicId = extractPublicId(post.audio_upload);
+
+            // 👇 Create 30-second trimmed preview link
+            const previewAudioUrl = `${cloudinaryBase}/du_30/${publicId}.mp3`;
+
+            post.audio_upload = previewAudioUrl;
+        }
 
         // Extract total count from the first row
         const totalPosts = postsResult.rows.length > 0 ? parseInt(postsResult.rows[0].total_count) : 0;

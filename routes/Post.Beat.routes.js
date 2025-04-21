@@ -9,7 +9,8 @@ const { createBeatPost,
     purchaseBeatPost,
     getUserBeatPosts,
     getBeatPostById,
-    getBeatPosts
+    getBeatPosts,
+    getPurchasedBeats
  } = require('../controllers/Post.Beat.controller');
 
 const { tokenProfileRequired, producerTokenRequired } = require('../middleware/Auth.middleware');
@@ -274,6 +275,21 @@ router.delete('/comment/delete', tokenProfileRequired, deleteCommentOnBeatPost);
  *         description: Server error.
  */
 router.post('/purchase', tokenProfileRequired, purchaseBeatPost);
+
+/**
+ * @swagger
+ * /api/beat/purchase:
+ *   get:
+ *     summary: Get all purchased beats for the authenticated user
+ *     tags: [Beat]
+ *     description: Retrieves all purchased beat posts
+ *     responses:
+ *       200:
+ *         description: List of purchased beats.
+ *       500:
+ *         description: Server error.
+ */
+router.get('/purchase', tokenProfileRequired, getPurchasedBeats);
 
 /**
  * @swagger
