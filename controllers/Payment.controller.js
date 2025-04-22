@@ -344,6 +344,29 @@ exports.promotePost = async (req, res) => {
             return res.status(404).json({ message: 'Post not found or Not post owner' });
         }
 
+        // Check if the user if a dev
+        const userDev = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
+
+        if (userDev.rows[0].identity === "dev") {
+            console.log("This user is a dev");
+
+            // Promote the post
+            await db.query(`UPDATE ${tableName} SET promoted = $1 WHERE id = $2`, [true, postId]);
+
+            // Record transaction
+            await db.query(
+                `INSERT INTO transactions (user_id, amount, type, post_id, status, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`,
+                [profile.id, amount, transactionType, postId, 'successful']
+            );
+
+            return res.status(200).json({
+                message: 'Post promoted successfully',
+                postId,
+                type,
+            });
+        }
+        
+
         // Check user balance
         if (profile.balance < amount) {
             return res.status(406).json({ message: 'Insufficient funds' });
