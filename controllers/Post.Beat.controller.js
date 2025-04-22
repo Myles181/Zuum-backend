@@ -23,7 +23,7 @@ exports.createBeatPost = async (req, res) => {
         const profileId = req.profile.id;
 
         // 2️⃣ Extract audio post details from request
-        const { caption, description, total_supply, amount } = req.body;
+        const { caption, description, total_supply, amount, genre } = req.body;
 
         let cloud_audio_upload, cloud_cover_photo;
 
@@ -45,10 +45,10 @@ exports.createBeatPost = async (req, res) => {
         // 3️⃣ Insert into post_beat table
         const postResult = await db.query(
             `INSERT INTO post_audio_sell 
-            (profile_id, caption, description, audio_upload, cover_photo, amount, total_supply)
+            (profile_id, caption, description, audio_upload, cover_photo, amount, total_supply, genre)
             VALUES ($1, $2, $3, $4, $5, $6, $7) 
             RETURNING *`,
-            [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, amount, total_supply]
+            [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, amount, total_supply, genre]
         );
 
         console.log(postResult);
@@ -514,15 +514,57 @@ exports.getPurchasedBeats = async (req, res) => {
     try {
         const profile = req.profile;
 
-        const audios = await db.query(`SELECT * FROM audio_purchases WHERE profile_id = $1`, [profile.id]);
-        if (audios.rowCount === 0) return res.status(200).json({ audios: [] });
+        const purchasesResult = await db.query(
+            `SELECT * FROM audio_purchases WHERE profile_id = $1`,
+            [profile.id]
+        );
+        if (purchasesResult.rowCount === 0) {
+            return res.status(200).json({ audios: [] });
+        }
 
-        return res.status(200).json({ audios: audios.rows });
+        const purchasedBeats = purchasesResult.rows;
+
+        // Extract beat IDs
+        const postIds = purchasedBeats.map(p => p.post_id);
+
+        // Get audio post details
+        const audioPostDetailsResult = await db.query(`
+            SELECT p.*, pf.image, u.username AS artist 
+            FROM post_audio_sell p
+            JOIN profile pf ON p.profile_id = pf.id
+            JOIN users u ON pf.user_id = u.id
+            WHERE p.id = ANY($1::int[])`,
+            [postIds]
+        );
+
+        const beatDetails = audioPostDetailsResult.rows;
+
+        // Combine both sets of data
+        const combinedData = beatDetails.map(beat => {
+            const purchase = purchasedBeats.find(p => p.post_id === beat.id);
+
+            return {
+                id: beat.id,
+                caption: beat.caption,
+                artist: beat.artist,
+                cover_photo: beat.cover_photo,
+                amount: beat.amount,
+                purchased_date: purchase?.created_at,
+                duration: beat.duration || null,  // If you plan to add this field later
+                genre: beat.genre || null,        // If you plan to add this field later
+                downloads_remaining: beat.total_supply - beat.total_buyers || 0, // You can add this to `audio_purchases` table
+                audio_upload: purchase?.audio_upload || beat.audio_upload
+            };
+        });
+
+        return res.status(200).json({ audios: combinedData });
+
     } catch (error) {
-        console.error("Error :", error);
+        console.error("❌ Error getting purchased beats:", error);
         return res.status(500).json({ status: false, error: error.message });
     }
-}
+};
+
 
 // Get all audio posts for the authenticated user
 exports.getUserBeatPosts = async (req, res) => {

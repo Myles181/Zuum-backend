@@ -9,6 +9,7 @@ const createPostAudioForSaleTable = async () => {
                 profile_id INT NOT NULL,
                 caption VARCHAR(255) NOT NULL,
                 description VARCHAR(255),
+                genre VARCHAR(255),
                 cover_photo VARCHAR(255) NOT NULL,
                 audio_upload VARCHAR(255) NOT NULL,
                 amount INT NOT NULL,
