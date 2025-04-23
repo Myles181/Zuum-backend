@@ -344,6 +344,9 @@ router.get('/create', tokenRequired, getPaymentPlan)
  *               postId:
  *                 type: string
  *                 example: "125"
+ *               timeline:
+ *                 type: datetime
+ *                 example: "2025-04-21 01:38:25.431031+00"
  *               type:
  *                 type: string
  *                 enum: [audio, video, beat]

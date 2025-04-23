@@ -313,7 +313,7 @@ exports.getPaymentPlan = async (req, res) => {
 }
 
 exports.promotePost = async (req, res) => {
-    const { postId, type } = req.body;
+    const { postId, type, timeline } = req.body;
     const profile = req.profile;
 
     const amount = 5000;
@@ -344,6 +344,9 @@ exports.promotePost = async (req, res) => {
             return res.status(404).json({ message: 'Post not found or Not post owner' });
         }
 
+        // Check if post is already on promotion
+        if (postResult.rows[0].promoted===true) return res.status(409).json({ message: 'Post is already on a promotion' });
+
         // Check if the user if a dev
         const userDev = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
 
@@ -351,6 +354,10 @@ exports.promotePost = async (req, res) => {
             console.log("This user is a dev");
 
             // Promote the post
+            // Promote the post
+            await db.query(`INSERT INTO promotion_transactions (post_id, type, amount, active, timeline, user_id) VALUES ($1, $2, $3, $4, $5)`,
+                [postId, type, amount, true, timeline, profile.user_id]
+            );
             await db.query(`UPDATE ${tableName} SET promoted = $1 WHERE id = $2`, [true, postId]);
 
             // Record transaction
@@ -365,7 +372,6 @@ exports.promotePost = async (req, res) => {
                 type,
             });
         }
-        
 
         // Check user balance
         if (profile.balance < amount) {
@@ -379,6 +385,9 @@ exports.promotePost = async (req, res) => {
         );
 
         // Promote the post
+        await db.query(`INSERT INTO promotion_transactions (post_id, type, amount, active, timeline, user_id) VALUES ($1, $2, $3, $4, $5)`,
+            [postId, type, amount, true, timeline, profile.user_id]
+        );
         await db.query(`UPDATE ${tableName} SET promoted = $1 WHERE id = $2`, [true, postId]);
 
         // Record transaction

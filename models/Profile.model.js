@@ -81,11 +81,16 @@ const PromotionTransactionTable = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS promotion_transactions (
                 id SERIAL PRIMARY KEY,
-                post_id INT UNIQUE NOT NULL,
+                post_id INT NOT NULL,
+                user_id INT NOT NULL,
                 type VARCHAR(10) NOT NULL,
                 amount INT NOT NULL DEFAULT 0.00,
-                tx_ref VARCHAR(10) NOT NULL,
-                created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP,
+                active BOOLEAN,
+                timeline TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+                CONSTRAINT fk_user FOREIGN KEY (user_id) 
+                REFERENCES users(id) ON DELETE CASCADE
             )
                 `);
         client.release();
@@ -95,4 +100,4 @@ const PromotionTransactionTable = async () => {
 }
 
 
-module.exports = { createProfileTable, createVirtualAccountTable };
+module.exports = { createProfileTable, createVirtualAccountTable, PromotionTransactionTable };

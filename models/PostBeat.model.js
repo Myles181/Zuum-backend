@@ -17,6 +17,7 @@ const createPostAudioForSaleTable = async () => {
                 total_buyers INT DEFAULT 0,
 
                 promoted BOOLEAN DEFAULT false,
+                promotion_duration INT DEFAULT 0,
 
                 likes INT NOT NULL DEFAULT 0,
                 unlikes INT NOT NULL DEFAULT 0,

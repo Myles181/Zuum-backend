@@ -1,5 +1,5 @@
 const { createUserTable, createOtpTable } = require('./models/User.model.js');
-const { createProfileTable, createVirtualAccountTable } = require('./models/Profile.model.js');
+const { createProfileTable, PromotionTransactionTable, createVirtualAccountTable } = require('./models/Profile.model.js');
 const { createFollowTable } = require('./models/Followers.model.js');
 const { createAccountTable } = require('./models/Account.model.js');
 const { createPaymentTables } = require('./models/Payment.model.js');
@@ -53,6 +53,7 @@ const create_db_tables = async () => {
     await createPostBeatLikesTable();
     await AudioPurchasesTable();
     await createPaymentTables();
+    await PromotionTransactionTable();
 
     return
 }
