@@ -50,7 +50,7 @@ const createPostBeatLikesTable = async () => {
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id)
-                REFERENCES post_audio(id) ON DELETE CASCADE,
+                REFERENCES post_audio_sell(id) ON DELETE CASCADE,
                 CONSTRAINT fk_reacter FOREIGN KEY (post_reacter_id)
                 REFERENCES profile(id) ON DELETE CASCADE
             )
@@ -75,7 +75,7 @@ const createPostBeatCommentsTable = async () => {
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_post FOREIGN KEY (post_id) 
-                REFERENCES post_audio(id) ON DELETE CASCADE,
+                REFERENCES post_audio_sell(id) ON DELETE CASCADE,
                 CONSTRAINT fk_commenter FOREIGN KEY (post_commenter_id) 
                 REFERENCES profile(id) ON DELETE CASCADE
             )

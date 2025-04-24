@@ -4,6 +4,23 @@ require('dotenv').config();
 const db = require('../config/db.conf');
 
 
+exports.adminSigninValidator = [
+    body('email')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Invalid email format'),
+
+    body('username')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('Username is required')
+        .isLength({ min: 5 }).withMessage('Username must be at least 5 characters long'),
+
+    body('password')
+        .trim()
+        .notEmpty().withMessage('Password is required')
+];
 
 exports.signupValidator = [
     body('username')
@@ -119,6 +136,41 @@ exports.tokenRequired = async (req, res, next) => {
 exports.onlyDev = (req, res, next) => {
     req.onlyDev = 'activated';
     next();
+};
+
+exports.adminTokenRequired = async (req, res, next) => {
+    try {
+        // Token extraction looks good
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid token provided' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.SECRET_KEY);
+        } catch (err) {
+            if (err.name === "TokenExpiredError") {
+                return res.status(401).json({ error: "Token has expired. Please refresh your token." });
+            }
+            return res.status(401).json({ error: "Invalid token" });
+        }
+
+
+        // Check if the user exists
+        const adminData = await db.query(`SELECT * FROM admin WHERE id = $1 AND deleted = false`, [decoded.id]);
+
+        if (adminData.rows.length === 0) {
+            console.log("Admin does not exist"); // Fixed typo in message
+            return res.status(404).json({ status: false, error: 'Admin not found' });
+        }
+        req.admin = adminData.rows[0]; // Store the actual admin object, not the query result
+        next();
+    } catch (err) {
+        console.log(err);
+        return res.status(401).json({ error: 'Invalid token' });
+    }
 };
 
 exports.tokenProfileRequired = async (req, res, next) => {

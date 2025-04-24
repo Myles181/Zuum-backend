@@ -18,6 +18,7 @@ const {
     PostVideoSharesTable,
 } = require('./models/PostVideo.model.js');
 
+const { createAdminTable } = require('./models/Admin.model.js');
 const { 
     createPostAudioForSaleTable,
     createPostBeatCommentsTable,
@@ -54,6 +55,7 @@ const create_db_tables = async () => {
     await AudioPurchasesTable();
     await createPaymentTables();
     await PromotionTransactionTable();
+    await createAdminTable();
 
     return
 }

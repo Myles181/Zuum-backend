@@ -68,6 +68,7 @@ app.use(passport.session());
 
 // Import and use your routes
 const authRoutes = require('./routes/Auth.routes');
+const adminRoutes = require('./routes/Admin.routes');  
 const userRoutes = require('./routes/User.routes');
 const postAudioRoutes = require('./routes/Post.Audio.routes');
 const postVideoRoutes = require('./routes/Post.Video.routes');
@@ -83,6 +84,8 @@ app.use('/api/video', postVideoRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/beat', postBeatRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes
+
 
 app.use("/webhook", cloudinaryWebhook);
 
