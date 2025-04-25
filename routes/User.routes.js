@@ -2,7 +2,7 @@ const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator, virtualAccountValidator } = require('../middleware/User.middleware');
 const { transactionHistoryController } = require('../controllers/Payment.controller');
-const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms } = require('../controllers/User.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms, RequestDistribution, getDistributionRequests } = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -519,6 +519,117 @@ router.get('/get-rooms', tokenProfileRequired, getChatRooms);
  *                 error: "Internal server error"
  */
 router.get('/transactions', tokenRequired, transactionHistoryController);
+
+/**
+ * @swagger
+ * /api/user/distribution-request:
+ *   post:
+ *     summary: Distribution request
+ *     description: Apply to have your music distributed
+ *     tags: [Distribution] 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 example: "Smurkio"
+ *               description:
+ *                 type: string
+ *                 example: "Music displays the art of rapping in the hood"
+ *               genre:
+ *                 type: string
+ *                 example: "Hip hop"
+ *               timeline:
+ *                 type: datetime
+ *                 description: "Timeline for the distribution to go on - Min (1 month [30 days])"
+ *                 example: "2025-06-21 01:38:25.431031+00"
+ *               audio_upload:
+ *                 type: string
+ *                 format: binary
+ *               cover_photo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Get the room id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Music Distribution request successful"
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio upload missing"
+ *       406:
+ *         description: Invalid time format or Audio or cover photo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio file must be in MP3 format"
+ *       409:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Insufficient funds"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/distribution-request', tokenProfileRequired, RequestDistribution);
+
+
+/**
+ * @swagger
+ * /api/user/distribution-requests:
+ *   get:
+ *     summary: Get all distribution requests
+ *     tags: [Distribution]
+ *     description: Retrieve all distribution requests.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved distribution requests.
+ *       500:
+ *         description: Server error.
+ */
+router.get('/distribution-requests', tokenProfileRequired, getDistributionRequests);
 
 module.exports = router;
 

@@ -6,7 +6,7 @@ const createAdminTable = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS admin (
                 id SERIAL PRIMARY KEY,
-                username VARCHAR(255) NOT NULL,
+                username VARCHAR(255) UNIQUE NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255),
                 cover_photo VARCHAR(255),

@@ -316,8 +316,8 @@ exports.promotePost = async (req, res) => {
     const { postId, type, timeline } = req.body;
     const profile = req.profile;
 
-    const amount = 5000;
     const validTypes = ['beat', 'audio', 'video'];
+    const ratePerWeek = 5000
 
     // Validate type
     if (!validTypes.includes(type)) {
@@ -372,6 +372,24 @@ exports.promotePost = async (req, res) => {
                 type,
             });
         }
+
+        // Calculate the amount based on the timeline
+        const now = new Date();
+        const futureDate = new Date(timeline);
+
+        if (isNaN(futureDate.getTime())) {
+            return res.status(400).json({ error: "Invalid timeline format" });
+        }
+
+        const diffInMs = futureDate.getTime() - now.getTime();
+        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+        if (diffInDays <= 7) {
+            return res.status(400).json({ error: "Timeline must be more than 7 days from now" });
+        }
+
+        const numberOfWeeks = Math.ceil(diffInDays / 7);
+        const amount = numberOfWeeks * ratePerWeek;
 
         // Check user balance
         if (profile.balance < amount) {

@@ -1,5 +1,5 @@
 const express = require('express');
-const { allUsers, login, signup, verifyEmail, resendOtp } = require('../controllers/Admin.controller');
+const { allUsers, login, signup, verifyEmail, resendOtp, deactivateUser, getDistributionRequests, readDistributionRequest } = require('../controllers/Admin.controller');
 const { adminTokenRequired, adminSigninValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
@@ -149,5 +149,87 @@ router.post('/auth/resend-otp', resendOtp);
  */
 router.get('/users', adminTokenRequired, allUsers);
 
+
+/**
+ * @swagger
+ * /api/admin/auth/deactivate:
+ *   post:
+ *     summary: Deactivate a user account
+ *     tags: [Admin]
+ *     description: Deactivate a user account
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New OTP sent to email.
+ *       500:
+ *         description: Server error.
+ */
+router.get('/deactivate', adminTokenRequired, deactivateUser);
+
+/**
+ * @swagger
+ * /api/admin/distribution-requests/read:
+ *   post:
+ *     summary: Mark a distribution request as read or unread
+ *     tags: [Admin]
+ *     description: Update the `read` status of a distribution request by its ID.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - read
+ *               - distributionId
+ *             properties:
+ *               read:
+ *                 type: boolean
+ *                 description: The new read status (true or false).
+ *               distributionId:
+ *                 type: integer
+ *                 description: The ID of the distribution request to update.
+ *     responses:
+ *       200:
+ *         description: Distribution request updated successfully.
+ *       400:
+ *         description: Required fields missing.
+ *       404:
+ *         description: Distribution request does not exist.
+ *       500:
+ *         description: Server error.
+ */
+router.post('/distribution-requests/read', adminTokenRequired, readDistributionRequest);
+
+
+/**
+ * @swagger
+ * /api/admin/distribution-requests:
+ *   get:
+ *     summary: Get all distribution requests
+ *     tags: [Admin]
+ *     description: Retrieve all distribution requests. You can filter by read status using the `read` query parameter.
+ *     parameters:
+ *       - in: query
+ *         name: read
+ *         schema:
+ *           type: string
+ *           enum: [true, false, none]
+ *         description: Filter by read status (true, false). If omitted or "none", all requests will be returned.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved distribution requests.
+ *       500:
+ *         description: Server error.
+ */
+router.get('/distribution-requests', adminTokenRequired, getDistributionRequests);
 
 module.exports = router;

@@ -99,5 +99,32 @@ const PromotionTransactionTable = async () => {
     }
 }
 
+const DistributionTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS distribution_requests (
+                id SERIAL PRIMARY KEY,
+                profile_id INT NOT NULL,
+                audio_upload VARCHAR(10) NOT NULL,
+                cover_photo VARCHAR(10) NOT NULL,
+                caption VARCHAR(255) NOT NULL,
+                description VARCHAR(255) NOT NULL,
+                timeline TIMESTAMPTZ,
+                amount FLOAT NOT NULL DEFAULT 0.00,
+                paid BOOLEAN DEFAULT false,
+                read BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-module.exports = { createProfileTable, createVirtualAccountTable, PromotionTransactionTable };
+                CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
+                REFERENCES profile(id) ON DELETE CASCADE
+            )
+                `);
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
+
+module.exports = { createProfileTable, createVirtualAccountTable, PromotionTransactionTable, DistributionTable };
+

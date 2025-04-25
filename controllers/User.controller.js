@@ -5,6 +5,8 @@ const { transporter } = require('../helpers/transport.js');
 const { createVirtualAccount } = require('../helpers/createVirtualAccount.js');
 const { generateOtp, saveOtp } = require("../utils/otp-utils.js");
 const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
+const path = require('path');
 
 
 exports.getProfile = async (req, res) => {
@@ -725,7 +727,97 @@ exports.addUsersToLabel = async (req, res) => {
         );
 
         // Email the user of member and add push notification
-
     }
+}
 
+
+exports.RequestDistribution = async (req, res) => {
+    const { timeline, description, caption, genre } = req.body;
+    const profile = req.profile;
+    const user = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
+    const ratePerMonth = 15000;
+
+    // Fields required
+    if (!caption || !description|| !genre || !timeline) return res.status(400).json({ message: 'Required fields missing' });
+
+    
+    try {
+        // Check if the audio upload is a valid MP3 file
+        const fileExtension = path.extname(req.files.audio_upload.name).toLowerCase();
+        if (fileExtension !== '.mp3') {
+            return res.status(406).json({ error: 'Audio file must be in MP3 format' });
+        }
+
+        const now = new Date();
+        const futureDate = new Date(timeline);
+
+        if (isNaN(futureDate.getTime())) {
+            return res.status(406).json({ error: "Invalid timeline format" });
+        }
+
+        const diffInMs = futureDate.getTime() - now.getTime();
+        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+
+        if (diffInDays <= 30) {
+            return res.status(400).json({ error: "Timeline must be more than 30 days from now" });
+        }
+
+        const numberOfWeeks = Math.ceil(diffInDays / 30);
+        const amount = numberOfWeeks * ratePerMonth;
+
+        console.log("Amount to be paid: ", amount);
+
+        // Upload the files
+        if (req.files && req.files.audio_upload && req.files.cover_photo) {
+            cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
+            cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
+                resource_type: "video",
+                folder: "distribution_uploads",
+                format: "mp3",
+                chunk_size: 10000000, // 10mb
+            });
+        } else return res.status(400).json({ message: 'Required fields missing' });
+
+        // Debit profile balance
+        if (user.rows[0].identity !== 'dev') {
+            console.log(user);
+            if (profile.balance < amount) return res.status(409).json({ message: 'Insufficient funds' });
+
+            await db.query(`
+                UPDATE profile
+                SET balance = balance - $1
+                WHERE id = $2`, [amount, profile.id]
+            );
+        };
+
+        // Insert into distribution table
+        await db.query(`
+            INSERT INTO distribution_requests (profile_id, caption, description, audio_upload, cover_photo, timeline, amount, paid)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [profile.id, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, timeline, amount, true]
+        );
+
+        return res.status(200).json({
+            message: 'Music Distribution request successful',
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: false,
+            error: error.message,
+        });
+    }
+}
+
+exports.getDistributionRequests = async (req, res) => {
+    const profile = req.profile;
+
+    const results = await db.query(`
+        SELECT * FROM distribution_requests
+        WHERE profile_id = $1`, [profile.id]
+    );
+
+    if (results.rowCount === 0) return res.status(200).json({ message: 'No distribution requests found', results: [] });
+    return res.status(200).json({ message: 'Distribution requests found', results: results.rows });
 }

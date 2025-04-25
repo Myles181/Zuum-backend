@@ -7,6 +7,7 @@ const { transporter } = require('../helpers/transport.js');
 const { validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
+const SECRET_KEY = process.env.SECRET_KEY;
 
 exports.signup = async (req, res) => {
     const errors = validationResult(req);
@@ -169,6 +170,7 @@ exports.login = async (req, res) => {
     }
 
     const { username, email, password } = req.body;
+    console.log(username, email, password);
 
     try {
         let rows;
@@ -182,9 +184,9 @@ exports.login = async (req, res) => {
         }
 
         // If user does not exist
-        if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+        if (rows.rowCount === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
-        const admin = rows[0];
+        const admin = rows.rows[0];
 
         // Unhash password
         const isMatch = await bcrypt.compare(password, admin.password);
@@ -192,9 +194,11 @@ exports.login = async (req, res) => {
 
         if (!admin.email_verified) return res.status(406).json({ error: 'Email is not verified' });
 
+        console.log(SECRET_KEY);
         const token = jwt.sign({ id: admin.id }, SECRET_KEY, { expiresIn: '1d' });
         res.json({ message: 'Login successful', token });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -203,44 +207,97 @@ exports.deactivateUser = async (req, res) => {
     const { userId } = req.body;
 
     try {
-        const result = await db.query('UPDATE users SET deactivated = true WHERE id = $1', [userId]);
-        if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
+        // Check if user exists
+        const user = await db.query(`SELECT id FROM users WHERE id = $1`, [userId]);
+        if (user.rowCount === 0) return res.status(404).json({ error: 'User not found' });
+
+        // Check if user is already deactivated
+        let change = user.rows[0].deactivated ? true : false;
+        
+        // Update the user table
+        await db.query('UPDATE users SET deactivated = $1 WHERE id = $2', [change, userId]);
         res.json({ message: 'User deactivated successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 }
 
-const { Op } = require("sequelize");
-
 exports.allUsers = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
     const offset = (page - 1) * limit;
-  
+    const searchQuery = `%${search}%`;
+
     try {
-      const users = await db.User.findAndCountAll({
-        where: {
-          [Op.or]: [
-            { username: { [Op.iLike]: `%${search}%` } },
-            { firstname: { [Op.iLike]: `%${search}%` } },
-            { lastname: { [Op.iLike]: `%${search}%` } }
-          ]
-        },
-        offset: parseInt(offset),
-        limit: parseInt(limit),
-        order: [['createdAt', 'DESC']]
-      });
-  
-      res.json({
-        total: users.count,
-        users: users.rows,
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(users.count / limit)
-      });
+        // Query total count
+        const countResult = await db.query(
+            `SELECT COUNT(*) FROM users 
+             WHERE username ILIKE $1 
+                OR firstname ILIKE $1 
+                OR lastname ILIKE $1`,
+            [searchQuery]
+        );
+
+        const total = parseInt(countResult.rows[0].count);
+
+        const results = ['id', 'username', 'email', 'firstname', 'lastname', 'middlename', 'phonenumber', 'identity', 'deactivated', 'created_at']
+
+        // Query paginated users
+        const usersResult = await db.query(
+            `SELECT ${results} FROM users 
+             WHERE username ILIKE $1 
+                OR firstname ILIKE $1 
+                OR lastname ILIKE $1 
+             ORDER BY created_at DESC 
+             LIMIT $2 OFFSET $3`,
+            [searchQuery, limit, offset]
+        );
+
+        res.json({
+            total: total,
+            users: usersResult.rows,
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Something went wrong." });
+        console.error(err);
+        res.status(500).json({ error: "Something went wrong." });
     }
 };
-  
 
+exports.getDistributionRequests = async (req, res) => {
+    const { read } = req.query;
+
+    try {
+        let query = 'SELECT * FROM distribution_requests';
+        const values = [];
+
+        if (read === 'true' || read === 'false') {
+            query += ' WHERE read = $1';
+            values.push(read === 'true');
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const result = await db.query(query, values);
+        res.status(200).json({ data: result.rows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+};
+
+exports.readDistributionRequest = async (req, res) => {
+    const { read, distributionId } = req.body;
+
+    if (!read || !distributionId) return res.status(400).json({ message: 'Required Fields missing' });
+
+    const result = await db.query(`
+        UPDATE distribution_requests
+        SET read = $1
+        WHERE id = $2`, [read, distributionId]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ message: 'Distribution request does not exist' });
+
+    return res.status(200).json({ message: 'Distribution request successfult', result: result.rows[0] });
+};
