@@ -14,6 +14,7 @@ const morgan = require("morgan");
 const db = require('./config/db.conf.js');
 const { startCronJob } = require('./cron-jobs/checkSubscription');
 const { startCronJob: startPromotionCronJob } = require('./cron-jobs/checkPromotions');
+const { startCronJob: startBeatPurchaseCronjob } = require('./cron-jobs/checkBeatDelivery');
 
 
 const app = express();
@@ -179,6 +180,90 @@ io.on("connection", (socket) => {
       }
   });
 
+  // Handle views
+  socket.on("views", async (insightData) => {
+      const { type, postId } = insightData; // Insight details
+      const userId = socket.userId; // From socket, set in joinChat
+
+      if (!userId) {
+          console.log('❌ No userId set for socket');
+          return;
+      }
+      if (!type || !postId) {
+        console.log('❌ Required fields not passed');
+        return ;
+      }
+
+      // Get the correct table name
+      let tableName;
+      if (type === 'beat') {
+          tableName = 'post_audio_sell';
+      } else if (type === 'audio') {
+          tableName = 'post_audio';
+      } else {
+          tableName = 'post_video';
+      }
+
+      try {
+          // Validate the postId
+          const postExists = await db.query(
+            `SELECT * FROM ${tableName}
+             WHERE id = $1`,
+             [postId]
+          );
+
+          if (postExists.rowCount === 0) {
+            console.log('❌ post id not found');
+            return ;
+          }
+
+          // Check if the user has already added to views
+          const insightExists = await db.query(
+            `SELECT * FROM views
+             WHERE user_id = $1 AND type = $2 AND postId = $3`,
+             [userId, type, postId]
+          );
+
+          if (insightExists.rowCount > 0) {
+            console.log('❌ User has already added this insight');
+            return ;
+          }
+
+          // Save to DB
+          const result = await db.query(
+              `INSERT INTO views (user_id, type, postId)
+               VALUES ($1, $2, $3) RETURNING *`,
+              [userId, type, postId]
+          );
+          const savedInsight = result.rows[0];
+
+          // Increment the insight count in the respective post table
+          await db.query(
+              `UPDATE ${tableName}
+               SET views = views + 1
+               WHERE id = $1`,
+              [postId]
+          );
+
+          // Prepare insight for clients
+          const insightToSend = {
+              id: savedInsight.id,
+              userId: savedInsight.user_id,
+              type: savedInsight.type,
+              postId: savedInsight.post_id,
+              createdAt: savedInsight.created_at
+          };
+
+          // Send to all clients
+          io.emit("receiveInsight", insightToSend);
+
+          console.log(`📊 Insight sent from ${userId}:`, insightToSend);
+      } catch (error) {
+          console.error('❌ Error saving insight:', error);
+          return ;
+      }
+  });
+
   socket.on("disconnect", () => {
       console.log(`❌ User ${socket.userId || socket.id} disconnected`);
   });
@@ -187,6 +272,7 @@ io.on("connection", (socket) => {
 // Start the cron job
 startCronJob();
 startPromotionCronJob();
+startBeatPurchaseCronjob();
 
 // Now uses server.listen instead of app.listen
 server.listen(PORT, () => {

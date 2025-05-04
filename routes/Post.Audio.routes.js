@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const { tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { createPostAudioValidator, deletePostAudioValidator, deleteCommentOnAudioPostValidator,
         reactToAudioPostValidator, commentToAudioPostValidator, updateCommentOnAudioPostValidator,
@@ -6,7 +7,6 @@ const { createPostAudioValidator, deletePostAudioValidator, deleteCommentOnAudio
 const { createAudioPost, updateAudioPost, deleteAudioPost, deleteCommentOnAudioPost, getUserAudioPosts,
         reactToAudioPost, commentToAudioPost, updateCommentOnAudioPost, getAudioPosts, getAudioPostById,
         shareAudioPost, updateSharedAudioPost, deleteSharedAudioPost } = require('../controllers/Post.Audio.controller');
-const router = express.Router();
 
 
 /**

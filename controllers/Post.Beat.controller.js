@@ -25,7 +25,7 @@ exports.createBeatPost = async (req, res) => {
         // 2️⃣ Extract audio post details from request
         const { caption, description, total_supply, amount, genre } = req.body;
 
-        let cloud_audio_upload, cloud_cover_photo;
+        let cloud_audio_upload, cloud_cover_photo, license;
 
         // Handle file uploads to Cloudinary
         if (req.files && req.files.cover_photo && req.files.audio_upload) {
@@ -37,6 +37,12 @@ exports.createBeatPost = async (req, res) => {
                 format: "mp3",
                 chunk_size: 6000000,
             });
+            // Upload license (PDF)
+            license = await cloudinary.uploader.upload(req.files.license.tempFilePath, {
+                resource_type: "raw",   // required for PDFs
+                folder: "beat_licenses",     // optional folder in Cloudinary
+                format: "pdf"
+            });
             console.log("End time:",Date.now());
         } else {
             return res.status(400).json({ status: false, message: 'No files found' });
@@ -45,10 +51,10 @@ exports.createBeatPost = async (req, res) => {
         // 3️⃣ Insert into post_beat table
         const postResult = await db.query(
             `INSERT INTO post_audio_sell 
-            (profile_id, caption, description, audio_upload, cover_photo, amount, total_supply, genre)
-            VALUES ($1, $2, $3, $4, $5, $6, $7) 
+            (profile_id, caption, description, audio_upload, cover_photo, license, amount, total_supply, genre)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
             RETURNING *`,
-            [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, amount, total_supply, genre]
+            [profileId, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, license.secure_url, amount, total_supply, genre]
         );
 
         console.log(postResult);
@@ -435,7 +441,7 @@ exports.purchaseBeatPost = async (req, res) => {
             [postId]
         );
 
-        if (postResult.rowCount === 0) return res.status(404).json({ message: 'Post does not exist' });
+        if (postResult.rowCount === 0 || postResult.rows[0].status !== 'active') return res.status(404).json({ message: 'Post does not exist' });
         else if (postResult.rows[0].total_buyers >= postResult.rows[0].total_supply) return res.status(404).json({ message: 'Post is sold out' });
 
         // Check if amount is equivalent to the beat amount
@@ -457,6 +463,15 @@ exports.purchaseBeatPost = async (req, res) => {
                 UPDATE post_audio_sell
                 SET total_buyers = total_buyers + 1
                 WHERE id = $1`, [postId]
+            );
+
+            // Add to the transactions
+            const beat_owner = await db.query(`
+                SELECT user_id FROM profile WHERE id = $1`, [postResult.rows[0].profile_id]
+            );
+            await db.query(`
+                INSERT INTO audio_sell_transactions (user_id, purchaser_id, amount, currency, post_id)
+                VALUES ($1, $2, $3, $4)`, [beat_owner.rows[0].user_id, profile.user_id, amount, "NGN", postId]
             );
 
             return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
@@ -499,10 +514,11 @@ exports.purchaseBeatPost = async (req, res) => {
         );
         await db.query(`
             INSERT INTO audio_sell_transactions (user_id, purchaser_id, amount, currency, post_id)
-            VALUES ($1, $2, $3, $4)`, [beat_owner.rows[0].user_id, profile.user_id, amount, "NGN", postId])
+            VALUES ($1, $2, $3, $4)`, [beat_owner.rows[0].user_id, profile.user_id, amount, "NGN", postId]
+        );
 
         // Send a success response
-        return res.status(200).json({ status: true, message: "Beat post purchased successfully!" });
+        return res.status(200).json({ status: true, message: "Beat purchased successfully!\nYou will receive the beat in your email inbox in less than 24 hours" });
 
     } catch (error) {
         console.error("Error :", error);
@@ -612,7 +628,7 @@ exports.getBeatPostById = async (req, res) => {
              FROM post_audio_sell p
              JOIN profile pr ON p.profile_id = pr.id
              JOIN users u ON pr.user_id = u.id
-             WHERE p.id = $1`,
+             WHERE p.id = $1 AND p.status = 'active'`,
             [postId]
         );
 
@@ -629,7 +645,7 @@ exports.getBeatPostById = async (req, res) => {
         const publicId = extractPublicId(post.audio_upload);
 
         // 👇 Create 30-second trimmed preview link
-        const previewAudioUrl = `${cloudinaryBase}/du_30/beat_uploads/${publicId}.mp3`;
+        const previewAudioUrl = `${cloudinaryBase}/du_15/beat_uploads/${publicId}.mp3`;
 
         post.audio_upload = previewAudioUrl;
 
@@ -693,6 +709,7 @@ exports.getBeatPosts = async (req, res) => {
                     ELSE false 
                 END AS has_purchased
              FROM post_audio_sell p
+             WHERE p.status = 'active'
              JOIN profile pf ON p.profile_id = pf.id
              JOIN users u ON pf.user_id = u.id
              LEFT JOIN audio_purchases ap ON ap.post_id = p.id AND ap.profile_id = $3

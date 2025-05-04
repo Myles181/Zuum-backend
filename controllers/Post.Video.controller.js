@@ -114,17 +114,6 @@ exports.createVideoPost = async (req, res) => {
     }
 };
 
-// const compressVideo = (inputPath, outputPath) => {
-//     return new Promise((resolve, reject) => {
-//         ffmpeg(inputPath)
-//             .videoBitrate("128k") // Adjust bitrate for smaller file
-//             .format("mp3")
-//             .save(outputPath)
-//             .on("end", () => resolve(outputPath))
-//             .on("error", (err) => reject(err));
-//     });
-// };
-
 exports.updateVideoPost = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -724,7 +713,7 @@ exports.getVideoPostById = async (req, res) => {
              FROM post_video p
              JOIN profile pr ON p.profile_id = pr.id
              JOIN users u ON pr.user_id = u.id
-             WHERE p.id = $1`,
+             WHERE p.id = $1 AND p.status = 'active' AND p.public = true`,
             [postId]
         );
         
@@ -803,7 +792,7 @@ exports.getVideoPosts = async (req, res) => {
             FROM post_video p
             JOIN profile pf ON p.profile_id = pf.id
             JOIN users u ON pf.user_id = u.id
-            WHERE p.public = true
+            WHERE p.public = true AND p.status = 'active'
             ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2;`,
             [limit, offset]

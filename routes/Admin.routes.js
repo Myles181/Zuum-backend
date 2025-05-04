@@ -1,5 +1,6 @@
 const express = require('express');
-const { allUsers, login, signup, verifyEmail, resendOtp, deactivateUser, getDistributionRequests, readDistributionRequest } = require('../controllers/Admin.controller');
+const { allUsers, login, signup, verifyEmail, resendOtp, deactivateUser, updateBeatPurchase, 
+    getDistributionRequests, readDistributionRequest, getRecentBeatPurchases } = require('../controllers/Admin.controller');
 const { adminTokenRequired, adminSigninValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
@@ -231,5 +232,78 @@ router.post('/distribution-requests/read', adminTokenRequired, readDistributionR
  *         description: Server error.
  */
 router.get('/distribution-requests', adminTokenRequired, getDistributionRequests);
+
+/**
+ * @swagger
+ * /api/admin/beat/update-purchase:
+ *   post:
+ *     summary: Submit beat purchase license
+ *     tags: [Beats]
+ *     description: Upload a license PDF file and update send_email flag for a beat purchase.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               beat_purchase_id:
+ *                 type: string
+ *                 description: ID of the beat purchase to update
+ *               send_email:
+ *                 type: boolean
+ *                 description: Whether to send the license to the user
+ *               license:
+ *                 type: string
+ *                 format: binary
+ *                 description: PDF license file to upload
+ *     responses:
+ *       200:
+ *         description: Updated successfully
+ *       400:
+ *         description: beat_purchase_id is required
+ *       406:
+ *         description: License must be a PDF file
+ *       404:
+ *         description: Beat Purchase ID not found
+ *       500:
+ *         description: License upload or server error
+ */
+router.post('/beat/update-purchase', adminTokenRequired, updateBeatPurchase);
+
+/**
+ * @swagger
+ * /api/admin/beat/recent-purchases:
+ *   get:
+ *     summary: Get recent beat purchases
+ *     tags: [Beats]
+ *     description: Retrieve paginated list of recent beat purchases, optionally filtered by send_email flag.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: "Page number for pagination (default: 1)"
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: "Number of items per page (default: 10)"
+ *       - in: query
+ *         name: send_email
+ *         schema:
+ *           type: boolean
+ *         required: false
+ *         description: Filter by whether the email was sent or not
+ *     responses:
+ *       200:
+ *         description: Recent purchases retrieved successfully
+ *       500:
+ *         description: Server error while retrieving recent purchases
+ */
+router.get('/beat/recent-purchases', adminTokenRequired, getRecentBeatPurchases);
+
 
 module.exports = router;

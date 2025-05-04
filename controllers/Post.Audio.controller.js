@@ -1,10 +1,8 @@
 require('dotenv').config();
 const db = require('../config/db.conf.js');
 const { validationResult } = require('express-validator');
-// const { transporter } = require('../helpers/transport.js');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
-// const ffmpeg = require("fluent-ffmpeg");
 
 
 exports.createAudioPost = async (req, res) => {
@@ -61,17 +59,6 @@ exports.createAudioPost = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
-// const compressAudio = (inputPath, outputPath) => {
-//     return new Promise((resolve, reject) => {
-//         ffmpeg(inputPath)
-//             .audioBitrate("128k") // Adjust bitrate for smaller file
-//             .format("mp3")
-//             .save(outputPath)
-//             .on("end", () => resolve(outputPath))
-//             .on("error", (err) => reject(err));
-//     });
-// };
 
 exports.updateAudioPost = async (req, res) => {
     const errors = validationResult(req);
@@ -779,18 +766,3 @@ exports.getAudioPosts = async (req, res) => {
         res.status(500).json({ status: false, error: error.message });
     }
 };
-
-exports.promoteAudioPost = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        console.log(errors);
-        return res.status(400).json({ errors: errors.array() });
-    }
-    
-    try {
-        const { amount,  } = req.body;
-    } catch (error) {
-        console.error("❌ Error :", error);
-        res.status(500).json({ status: false, error: error.message });
-    }
-}

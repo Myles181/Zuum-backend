@@ -110,8 +110,8 @@ const DistributionTable = async () => {
                 cover_photo VARCHAR(10) NOT NULL,
                 caption VARCHAR(255) NOT NULL,
                 description VARCHAR(255) NOT NULL,
-                timeline TIMESTAMPTZ,
                 amount FLOAT NOT NULL DEFAULT 0.00,
+                social_links JSONB NOT NULL,
                 paid BOOLEAN DEFAULT false,
                 read BOOLEAN DEFAULT false,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -126,5 +126,54 @@ const DistributionTable = async () => {
     }
 }
 
-module.exports = { createProfileTable, createVirtualAccountTable, PromotionTransactionTable, DistributionTable };
+
+const MusicPromotionTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS musicpromotion_requests (
+                id SERIAL PRIMARY KEY,
+                profile_id INT NOT NULL,
+                audio_upload VARCHAR(10) NOT NULL,
+                cover_photo VARCHAR(10) NOT NULL,
+                caption VARCHAR(255) NOT NULL,
+                description VARCHAR(255) NOT NULL,
+                amount FLOAT NOT NULL DEFAULT 0.00,
+                media_links JSONB NOT NULL,
+                paid BOOLEAN DEFAULT false,
+                read BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+                CONSTRAINT fk_profile FOREIGN KEY (profile_id) 
+                REFERENCES profile(id) ON DELETE CASCADE
+            )
+                `);
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
+
+const viewsTable = async () => {
+    try {
+        const client = await db.connect();
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS views (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL,
+                type VARCHAR(10) NOT NULL,
+                post_id INT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+                CONSTRAINT fk_user FOREIGN KEY (user_id) 
+                REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+        client.release();
+    } catch (err) {
+        console.error('❌ Error creating table:', err);
+    }
+}
+
+module.exports = { createProfileTable, createVirtualAccountTable, PromotionTransactionTable, DistributionTable, viewsTable, MusicPromotionTable };
 

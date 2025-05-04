@@ -41,14 +41,16 @@ const createPaymentTables = async () => {
         await client.query(`
             CREATE TABLE IF NOT EXISTS audio_sell_transactions (
                 id SERIAL PRIMARY KEY,
-                profile_id INT NOT NULL,
+                purchaser_id INT NOT NULL,
+                user_id INT NOT NULL,
                 amount DECIMAL(15, 2) NOT NULL,
                 currency VARCHAR(3) DEFAULT 'NGN',
                 post_id INT NOT NULL,
 
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-                CONSTRAINT fk_profile FOREIGN KEY (profile_id) REFERENCES profile(id) ON DELETE CASCADE,
+                CONSTRAINT fk_purchaser FOREIGN KEY (purchaser_id) REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 CONSTRAINT fk_post FOREIGN KEY (post_id) REFERENCES post_audio_sell(id) ON DELETE CASCADE
             )
         `);

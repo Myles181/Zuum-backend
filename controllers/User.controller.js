@@ -659,27 +659,60 @@ exports.GetVirtualAccount = async (req, res) => {
 exports.addUsersToLabel = async (req, res) => {
     const { member_id, invitation_message } = req.body;
     const profile = req.profile;
+    let label_id;
 
-    // Check if the member exist
-    const userExist = await db.query(`
-        SELECT id FROM profile WHERE id = $
-        `, [member_id]
-    );
-
-    if (userExist.rowCount === 0) return res.status(404).json({ message: 'User does not exist' });
-
-    // INVITE
-    const memberExists = await db.query(`
-        SELECT * FROM label WHERE member_id = $1`,
-        [member_id]
-    );
-
-    if (memberExists.rowCount === 0) {
-        // Invite or add the user to label
-        const label_id = await db.query(`
-            INSERT INTO label (owner_id, member_id, invitation_message)
-            VALUES ($1, $2, $3) RETURNING id`, [profile.id, member_id, invitation_message]
+    try {
+        // Check if the member exist
+        const userExist = await db.query(`
+            SELECT id FROM profile WHERE id = $
+            `, [member_id]
         );
+
+        if (userExist.rowCount === 0) return res.status(404).json({ message: 'User does not exist' });
+
+        // INVITE
+        const memberExists = await db.query(`
+            SELECT * FROM label WHERE member_id = $1 AND owner_id = $2`,
+            [member_id, profile.id]
+        );
+
+        if (memberExists.rowCount === 0) {
+            // Invite or add the user to label
+            label_id = await db.query(`
+                INSERT INTO label (owner_id, member_id, invitation_message)
+                VALUES ($1, $2, $3) RETURNING id`, [profile.id, member_id, invitation_message]
+            );
+        } else if (memberExists.rows.status === 'pending'){
+            // Return statement that user hasn't accepted
+            return res.status(406).json({ message: 'Pending invitation' });
+        } else if (memberExists.rows.status === 'ex-member') {
+            // Re-invite the ex-member
+            label_id = await db.query(`
+                UPDATE label
+                SET status = 'pending' WHERE member_id = $1
+                RETURNING id`, [member_id]
+            );
+        } else if (memberExists.rows.status === 'active') {
+            // Return statement that user is already a member
+            return res.status(406).json({ message: 'User is already a member' });
+        } else if (memberExists.rows.status === 'decline') {
+            const declinedAt = new Date(memberExists.rows[0].updated_at);  // assuming 'updated_at' is available
+            const now = new Date();
+            const thirtyDaysLater = new Date(declinedAt);
+            thirtyDaysLater.setDate(declinedAt.getDate() + 30);
+
+            if (now < thirtyDaysLater) {
+                return res.status(406).json({
+                    message: `User declined the invitation. You can send a new invite after ${thirtyDaysLater.toDateString()}.`
+                });
+            } else {
+                label_id = await db.query(`
+                    UPDATE label
+                    SET status = 'pending' WHERE member_id = $1
+                    RETURNING id`, [member_id]
+                );
+            }
+        }
 
         // Email the user of member and add push notification
         // Read the label.html template dynamically
@@ -690,10 +723,12 @@ exports.addUsersToLabel = async (req, res) => {
                 return res.status(500).json({ error: 'Error generating email content.' });
             }
 
-            // Replace placeholders with actual values
+            // Read the label.html template dynamically (LABEL_NAME, INVITATION_MESSAGE, INVITATION_LINK, CURRENT_YEAR)
             const updatedHtml = htmlContent
                 .replace('{{LABEL_NAME}}', userExist.rows.label_name)
-                .replace('{{INVITATION_LINK}}', `${process.env.FRONTEND_URL}/${label_id}/label_invitation.html`);
+                .replace('{{INVITATION_LINK}}', `${process.env.FRONTEND_URL}/${label_id}/label_invitation`)
+                .replace('{{INVITATION_MESSAGE}}', invitation_message)
+                .replace('{{CURRENT_YEAR}}', new Date().getFullYear());
 
             // Send OTP via Email with the updated template
             const mailOptions = {
@@ -712,103 +747,177 @@ exports.addUsersToLabel = async (req, res) => {
                 }
             });
         });
-    }
 
-    else if (memberExists.rows.status === 'pending'){
-        // Return statement that user hasn't accepted
-        return res.status(406).json({ message: 'Pending invitation' });
-    }
-    else if (memberExists.rows.status === 'ex-member') {
-        // Re-invite the ex-member
-        await db.query(`
-            UPDATE label
-            SET status = 'pending' WHERE member_id = $1
-            `, [member_id]
+        return res.status(200).json({ message: 'Request sent successfully' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    };
+};
+
+exports.getLabelMembers = async (req, res) => {
+    const profile = req.profile;
+
+    try {
+        const user = await db.query(`
+            SELECT identity FROM users WHERE id = $1`,
+            [profile.user_id]
+        );
+        if (user.rows.identity !== 'record_label') return res.status(401).json({ message: 'Unauthorized' });
+
+        // Get label members
+        const labelMembers = await db.query(`
+            SELECT * FROM label
+            WHERE owner_id = $1 AND status = 'active'`,
+            [profile.id]
         );
 
-        // Email the user of member and add push notification
+        if (labelMembers.rowCount === 0) return res.status(200).json({ message: 'No label members found', label_members: [] });
+
+        return res.status(200).json({ message: 'Label members retrieved successfully', label_members: labelMembers.rows });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    };
+};
+
+exports.acceptLabelRequest = async (req, res) => {
+    const { label_id, accept } = req.body;
+    const profile = req.profile;
+
+    try {
+        // Check if label request exists and belongs to this user
+        const labelRequest = await db.query(`
+            SELECT * FROM label WHERE id = $1 AND member_id = $2 AND status = 'pending'
+        `, [label_id, profile.id]);
+
+        if (labelRequest.rowCount === 0) {
+            return res.status(404).json({ message: 'Label invitation not found or not authorized' });
+        }
+
+        // Determine new status
+        const status = accept === true ? 'active' : 'decline';
+
+        // Update the label request
+        await db.query(`
+            UPDATE label
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2
+        `, [status, label_id]
+        );
+
+        const message = accept ? 'Label invitation accepted successfully' : 'Label invitation declined successfully';
+
+        return res.status(200).json({ message });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
     }
+};
+
+exports.getUserLabels = async (req, res) => {
+    const profile = req.profile;
+
+    try {
+        // Get user labels
+        const userLabels = await db.query(`
+            SELECT * FROM label
+            WHERE member_id = $1 AND status = 'active'`,
+            [profile.id]
+        );
+
+        if (userLabels.rowCount === 0) return res.status(200).json({ message: 'No labels found', labels: [] });
+
+        return res.status(200).json({ message: 'Labels retrieved successfully', labels: userLabels.rows });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    };
 }
 
-
 exports.RequestDistribution = async (req, res) => {
-    const { timeline, description, caption, genre } = req.body;
+    const { description, caption, genre } = req.body;
+    let {  social_links } = req.body; // social_links is expected to be a JSON string
     const profile = req.profile;
-    const user = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
-    const ratePerMonth = 15000;
 
-    // Fields required
-    if (!caption || !description|| !genre || !timeline) return res.status(400).json({ message: 'Required fields missing' });
-
-    
     try {
-        // Check if the audio upload is a valid MP3 file
+        // Validate fields
+        social_links = JSON.parse(social_links); // Parse social_links from string to object
+        if (!caption || !description || !genre || !social_links || typeof social_links !== 'object') {
+            return res.status(400).json({ message: 'Required fields missing or invalid social_links format' });
+        }
+
+        const user = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
+
+        const activeLinks = Object.values(social_links).filter(link => link && link.trim() !== '');
+        const finalAmount = activeLinks.length * 15000;
+
+        // Ensure audio file is valid
+        if (!req.files || !req.files.audio_upload || !req.files.cover_photo) {
+            return res.status(400).json({ message: 'Audio upload and cover photo are required' });
+        }
+
         const fileExtension = path.extname(req.files.audio_upload.name).toLowerCase();
         if (fileExtension !== '.mp3') {
             return res.status(406).json({ error: 'Audio file must be in MP3 format' });
         }
 
-        const now = new Date();
-        const futureDate = new Date(timeline);
-
-        if (isNaN(futureDate.getTime())) {
-            return res.status(406).json({ error: "Invalid timeline format" });
-        }
-
-        const diffInMs = futureDate.getTime() - now.getTime();
-        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-
-        if (diffInDays <= 30) {
-            return res.status(400).json({ error: "Timeline must be more than 30 days from now" });
-        }
-
-        const numberOfWeeks = Math.ceil(diffInDays / 30);
-        const amount = numberOfWeeks * ratePerMonth;
-
-        console.log("Amount to be paid: ", amount);
-
-        // Upload the files
-        if (req.files && req.files.audio_upload && req.files.cover_photo) {
-            cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
-            cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
-                resource_type: "video",
-                folder: "distribution_uploads",
-                format: "mp3",
-                chunk_size: 10000000, // 10mb
-            });
-        } else return res.status(400).json({ message: 'Required fields missing' });
-
-        // Debit profile balance
+        // Handle payment (except dev)
         if (user.rows[0].identity !== 'dev') {
-            console.log(user);
-            if (profile.balance < amount) return res.status(409).json({ message: 'Insufficient funds' });
+            if (profile.balance < finalAmount) {
+                return res.status(409).json({ message: 'Insufficient funds' });
+            }
 
-            await db.query(`
-                UPDATE profile
-                SET balance = balance - $1
-                WHERE id = $2`, [amount, profile.id]
+            await db.query(
+                `UPDATE profile SET balance = balance - $1 WHERE id = $2`,
+                [finalAmount, profile.id]
             );
-        };
+        }
 
-        // Insert into distribution table
+        // Upload files to Cloudinary
+        const cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
+        const cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
+            resource_type: "video",
+            folder: "distribution_uploads",
+            format: "mp3",
+            chunk_size: 10000000,
+        });
+
+        // Save request
         await db.query(`
-            INSERT INTO distribution_requests (profile_id, caption, description, audio_upload, cover_photo, timeline, amount, paid)
+            INSERT INTO distribution_requests 
+            (profile_id, caption, description, audio_upload, cover_photo, amount, paid, social_links)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [profile.id, caption, description, cloud_audio_upload.secure_url, cloud_cover_photo.secure_url, timeline, amount, true]
+            [
+                profile.id,
+                caption,
+                description,
+                cloud_audio_upload.secure_url,
+                cloud_cover_photo.secure_url,
+                finalAmount,
+                true,
+                JSON.stringify(social_links)
+            ]
         );
 
         return res.status(200).json({
             message: 'Music Distribution request successful',
+            charge: finalAmount,
+            links_used: activeLinks.length,
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        return res.status(500).json({
             status: false,
             error: error.message,
         });
     }
-}
+};
+
 
 exports.getDistributionRequests = async (req, res) => {
     const profile = req.profile;
@@ -820,4 +929,254 @@ exports.getDistributionRequests = async (req, res) => {
 
     if (results.rowCount === 0) return res.status(200).json({ message: 'No distribution requests found', results: [] });
     return res.status(200).json({ message: 'Distribution requests found', results: results.rows });
+};
+
+exports.editDistributionRequest = async (req, res) => {
+    const { description, caption, genre, social_links } = req.body;
+    const profile = req.profile;
+    const { request_id } = req.params;
+
+    try {
+        // Fetch the existing distribution request
+        const result = await db.query(
+            `SELECT * FROM distribution_requests WHERE id = $1 AND profile_id = $2`,
+            [request_id, profile.id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Distribution request not found' });
+        }
+
+        const existingRequest = result.rows[0];
+        const existingLinks = existingRequest.social_links;
+
+        // Validate social_links
+        if (social_links) {
+            if (typeof social_links !== 'object' || Array.isArray(social_links)) {
+                return res.status(400).json({ message: 'social_links must be an object' });
+            }
+
+            const newKeys = Object.keys(social_links);
+            const oldKeys = Object.keys(existingLinks);
+
+            // Check for added or removed keys
+            const keysAdded = newKeys.filter(key => !oldKeys.includes(key));
+            const keysRemoved = oldKeys.filter(key => !newKeys.includes(key));
+
+            if (keysAdded.length > 0 || keysRemoved.length > 0) {
+                return res.status(400).json({
+                    message: 'You cannot add or remove social link keys, only edit the existing ones',
+                });
+            }
+
+            // Merge updated values into existing
+            for (const key of oldKeys) {
+                if (social_links[key] && social_links[key].trim() !== '') {
+                    existingLinks[key] = social_links[key].trim();
+                }
+            }
+        }
+
+        // Update the record
+        await db.query(`
+            UPDATE distribution_requests 
+            SET caption = $1,
+                description = $2,
+                genre = $3,
+                social_links = $4,
+                updated_at = NOW(),
+                read = $7
+            WHERE id = $5 AND profile_id = $6
+        `, [
+            caption || existingRequest.caption,
+            description || existingRequest.description,
+            genre || existingRequest.genre,
+            JSON.stringify(existingLinks),
+            request_id,
+            profile.id,
+            false
+        ]);
+
+        return res.status(200).json({
+            message: 'Distribution request updated successfully',
+            updated_links: existingLinks,
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: 'Something went wrong',
+            error: error.message,
+        });
+    }
+};
+
+exports.mediaPromotion = async (req, res) => {
+    const { description, caption, genre, media_links } = req.body;
+    const profile = req.profile;
+
+    try {
+        // Validate fields
+        if (!caption || !description || !genre || !media_links || typeof media_links !== 'object') {
+            return res.status(400).json({ message: 'Required fields missing or invalid media_links format' });
+        }
+
+        const user = await db.query(`SELECT identity FROM users WHERE id = $1`, [profile.user_id]);
+
+        const activeLinks = Object.values(media_links).filter(link => link && link.trim() !== '');
+        const finalAmount = activeLinks.length * 15000;
+
+        // Ensure audio file is valid
+        if (!req.files || !req.files.audio_upload || !req.files.cover_photo) {
+            return res.status(400).json({ message: 'Audio upload and cover photo are required' });
+        }
+
+        const fileExtension = path.extname(req.files.audio_upload.name).toLowerCase();
+        if (fileExtension !== '.mp3') {
+            return res.status(406).json({ error: 'Audio file must be in MP3 format' });
+        }
+
+        // Handle payment (except dev)
+        if (user.rows[0].identity !== 'dev') {
+            if (profile.balance < finalAmount) {
+                return res.status(409).json({ message: 'Insufficient funds' });
+            }
+
+            await db.query(
+                `UPDATE profile SET balance = balance - $1 WHERE id = $2`,
+                [finalAmount, profile.id]
+            );
+        }
+
+        // Upload files to Cloudinary
+        const cloud_cover_photo = await cloudinary.uploader.upload(req.files.cover_photo.tempFilePath);
+        const cloud_audio_upload = await cloudinary.uploader.upload(req.files.audio_upload.tempFilePath, {
+            resource_type: "video",
+            folder: "distribution_uploads",
+            format: "mp3",
+            chunk_size: 10000000,
+        });
+
+        // Save request
+        await db.query(`
+            INSERT INTO mediapromotion_requests 
+            (profile_id, caption, description, audio_upload, cover_photo, amount, paid, media_links)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+                profile.id,
+                caption,
+                description,
+                cloud_audio_upload.secure_url,
+                cloud_cover_photo.secure_url,
+                finalAmount,
+                true,
+                JSON.stringify(media_links)
+            ]
+        );
+
+        return res.status(200).json({
+            message: 'Music Promotion request successful',
+            charge: finalAmount,
+            links_used: activeLinks.length,
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: false,
+            error: error.message,
+        });
+    }
+};
+
+exports.editMusicPromotion = async (req, res) => {
+    const { description, caption, genre, media_links } = req.body;
+    const profile = req.profile;
+    const { request_id } = req.params;
+
+    try {
+        // Fetch the existing distribution request
+        const result = await db.query(
+            `SELECT * FROM musicpromotion_requests WHERE id = $1 AND profile_id = $2`,
+            [request_id, profile.id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Music Promotion request not found' });
+        }
+
+        const existingRequest = result.rows[0];
+        const existingLinks = existingRequest.media_links;
+
+        // Validate social_links
+        if (social_links) {
+            if (typeof media_links !== 'object' || Array.isArray(media_links)) {
+                return res.status(400).json({ message: 'media_links must be an object' });
+            }
+
+            const newKeys = Object.keys(media_links);
+            const oldKeys = Object.keys(existingLinks);
+
+            // Check for added or removed keys
+            const keysAdded = newKeys.filter(key => !oldKeys.includes(key));
+            const keysRemoved = oldKeys.filter(key => !newKeys.includes(key));
+
+            if (keysAdded.length > 0 || keysRemoved.length > 0) {
+                return res.status(400).json({
+                    message: 'You cannot add or remove media link keys, only edit the existing ones',
+                });
+            }
+
+            // Merge updated values into existing
+            for (const key of oldKeys) {
+                if (media_links[key] && media_links[key].trim() !== '') {
+                    existingLinks[key] = media_links[key].trim();
+                }
+            }
+        }
+
+        // Update the record
+        await db.query(`
+            UPDATE musicpromotion_requests 
+            SET caption = $1,
+                description = $2,
+                genre = $3,
+                media_links = $4,
+                updated_at = NOW(),
+                read = $7
+            WHERE id = $5 AND profile_id = $6
+        `, [
+            caption || existingRequest.caption,
+            description || existingRequest.description,
+            genre || existingRequest.genre,
+            JSON.stringify(existingLinks),
+            request_id,
+            profile.id,
+            false
+        ]);
+
+        return res.status(200).json({
+            message: 'Music promotion request updated successfully',
+            updated_links: existingLinks,
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: 'Something went wrong',
+            error: error.message,
+        });
+    }
 }
+
+exports.getMusicPromotionRequests = async (req, res) => {
+    const profile = req.profile;
+
+    const results = await db.query(`
+        SELECT * FROM musicpromotion_requests
+        WHERE profile_id = $1`, [profile.id]
+    );
+
+    if (results.rowCount === 0) return res.status(200).json({ message: 'No music promotion requests found', results: [] });
+    return res.status(200).json({ message: 'Music promotion requests found', results: results.rows });
+};

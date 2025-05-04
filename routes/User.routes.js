@@ -2,7 +2,12 @@ const express = require('express');
 const { tokenRequired, tokenProfileRequired } = require('../middleware/Auth.middleware')
 const { updateProfileValidator, followProfileValidator, virtualAccountValidator } = require('../middleware/User.middleware');
 const { transactionHistoryController } = require('../controllers/Payment.controller');
-const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, getRoomId, getChatRooms, RequestDistribution, getDistributionRequests } = require('../controllers/User.controller');
+const { getProfile, updateProfile, deleteProfile, followProfile, getProfileById, 
+        getRoomId, getChatRooms, RequestDistribution, getDistributionRequests, 
+        addUsersToLabel, acceptLabelRequest, getUserLabels, getLabelMembers, mediaPromotion,
+        editDistributionRequest,
+        getMusicPromotionRequests,
+        editMusicPromotion} = require('../controllers/User.controller');
 const router = express.Router();
 
 /**
@@ -543,10 +548,10 @@ router.get('/transactions', tokenRequired, transactionHistoryController);
  *               genre:
  *                 type: string
  *                 example: "Hip hop"
- *               timeline:
- *                 type: datetime
- *                 description: "Timeline for the distribution to go on - Min (1 month [30 days])"
- *                 example: "2025-06-21 01:38:25.431031+00"
+ *               social_links:
+ *                 type: json
+ *                 description: 'SOcial links required ({"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"})'
+ *                 example: '{"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"}'
  *               audio_upload:
  *                 type: string
  *                 format: binary
@@ -555,7 +560,7 @@ router.get('/transactions', tokenRequired, transactionHistoryController);
  *                 format: binary
  *     responses:
  *       200:
- *         description: Get the room id
+ *         description: Distribution successful
  *         content:
  *           application/json:
  *             schema:
@@ -615,6 +620,108 @@ router.get('/transactions', tokenRequired, transactionHistoryController);
  */
 router.post('/distribution-request', tokenProfileRequired, RequestDistribution);
 
+/**
+ * @swagger
+ * /api/user/distribution-request/{request_id}:
+ *   put:
+ *     summary: Distribution request
+ *     description: Apply to have your music distributed
+ *     tags: [Distribution]
+ *     parameters:
+ *       - in: path
+ *         name: request_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the distribution request to edit
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 example: "Smurkio"
+ *               description:
+ *                 type: string
+ *                 example: "Music displays the art of rapping in the hood"
+ *               genre:
+ *                 type: string
+ *                 example: "Hip hop"
+ *               social_links:
+ *                 type: json
+ *                 description: 'SOcial links required ({"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"})'
+ *                 example: '{"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"}'
+ *               audio_upload:
+ *                 type: string
+ *                 format: binary
+ *               cover_photo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Music Distribution successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Music Distribution request successful"
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio upload missing"
+ *       406:
+ *         description: Invalid time format or Audio or cover photo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio file must be in MP3 format"
+ *       409:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Insufficient funds"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.put('/distribution-request/:request_id', tokenProfileRequired, editDistributionRequest);
+
 
 /**
  * @swagger
@@ -630,6 +737,477 @@ router.post('/distribution-request', tokenProfileRequired, RequestDistribution);
  *         description: Server error.
  */
 router.get('/distribution-requests', tokenProfileRequired, getDistributionRequests);
+
+/**
+ * @swagger
+ * /api/user/musicpromotion-request:
+ *   post:
+ *     summary: Music promotion request
+ *     description: Apply to have your music distributed
+ *     tags: [Music Promotion] 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 example: "Smurkio"
+ *               description:
+ *                 type: string
+ *                 example: "Music displays the art of rapping in the hood"
+ *               genre:
+ *                 type: string
+ *                 example: "Hip hop"
+ *               media_links:
+ *                 type: json
+ *                 description: 'Media links required ({"tiktok": "https://tiktok.com", "instagram": "https://instagram.com", "x": "https://x.com", "facebook": "https://facebook.com", "youtube": "https://youtube.com"})'
+ *                 example: '{"tiktok": "https://tiktok.com", "instagram": "https://instagram.com", "x": "https://x.com", "facebook": "https://facebook.com", "youtube": "https://youtube.com"}'
+ *               audio_upload:
+ *                 type: string
+ *                 format: binary
+ *               cover_photo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Music promotion
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Music Promotion request successful"
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio upload missing"
+ *       406:
+ *         description: Invalid time format or Audio or cover photo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio file must be in MP3 format"
+ *       409:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Insufficient funds"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.post('/musicpromotion-request', tokenProfileRequired, mediaPromotion);
+
+/**
+ * @swagger
+ * /api/user/musicpromotion-request/{request_id}:
+ *   put:
+ *     summary: Music promotion request
+ *     description: Apply to have your music distributed
+ *     tags: [Music promotion]
+ *     parameters:
+ *       - in: path
+ *         name: request_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the music promotion request to edit
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 example: "Smurkio"
+ *               description:
+ *                 type: string
+ *                 example: "Music displays the art of rapping in the hood"
+ *               genre:
+ *                 type: string
+ *                 example: "Hip hop"
+ *               social_links:
+ *                 type: json
+ *                 description: 'SOcial links required ({"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"})'
+ *                 example: '{"spotify": "https://spotify.com", "apple_music": "https://apple.com", "boomplay": "https://boomplay.com", "audio_mark": "https://audiomack.com"}'
+ *               audio_upload:
+ *                 type: string
+ *                 format: binary
+ *               cover_photo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Music promotion
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Music Promotion request successful"
+ *       400:
+ *         description: Required fields missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio upload missing"
+ *       406:
+ *         description: Invalid time format or Audio or cover photo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Audio file must be in MP3 format"
+ *       409:
+ *         description: Insufficient funds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *               example:
+ *                 message: "Insufficient funds"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 error:
+ *                   type: string
+ *               example:
+ *                 status: false
+ *                 error: "Internal server error"
+ */
+router.put('/musicpromotion-request/:request_id', tokenProfileRequired, editMusicPromotion);
+
+
+/**
+ * @swagger
+ * /api/user/musicpromotion-requests:
+ *   get:
+ *     summary: Get all Music promotion requests
+ *     tags: [Music promotion]
+ *     description: Retrieve all music promotion requests.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved music promotion requests.
+ *       500:
+ *         description: Server error.
+ */
+router.get('/musicpromotion-requests', tokenProfileRequired, getMusicPromotionRequests);
+
+
+/**
+ * @swagger
+ * /api/user/label/add-users:
+ *   post:
+ *     summary: Invite a user to your label
+ *     description: |
+ *       Invite a user by `member_id` to join the authenticated user's label.
+ *       - If no existing record, creates a new pending invitation.
+ *       - If status is `ex-member`, re-invites by setting status back to `pending`.
+ *       - Returns an error if user does not exist, invitation is already pending, or user is already active.
+ *     tags: [Label]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - member_id
+ *               - invitation_message
+ *             properties:
+ *               member_id:
+ *                 type: integer
+ *                 description: ID of the user to invite
+ *                 example: 42
+ *               invitation_message:
+ *                 type: string
+ *                 description: Custom message to include in the invitation email
+ *                 example: "Hey, we’d love to have you on our label—please join!"
+ *     responses:
+ *       200:
+ *         description: Invitation created (or re-sent) successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Request sent successfully"
+ *       404:
+ *         description: Target user does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User does not exist"
+ *       406:
+ *         description: Invitation already pending or user is already a member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   enum: ["Pending invitation", "User is already a member"]
+ *       500:
+ *         description: Error generating email or sending notification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+router.get('/label/add-users', tokenProfileRequired, addUsersToLabel);
+  
+  
+/**
+ * @swagger
+ * /api/user/label/members:
+ *   get:
+ *     summary: Retrieve active label members
+ *     description: |
+ *       Fetches all active members of the authenticated user's label.
+ *       Only users with `record_label` identity may access.
+ *     tags: [Label]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active label members (or empty list if none)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Label members retrieved successfully"
+ *                 label_members:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       owner_id:
+ *                         type: integer
+ *                       member_id:
+ *                         type: integer
+ *                       invitation_message:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date
+ *                       updated_at:
+ *                         type: string
+ *                         format: date
+ *       401:
+ *         description: Unauthorized (not a record_label)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+router.get('/label/members', tokenProfileRequired, getLabelMembers);
+
+/**
+ * @swagger
+ * /api/user/label/accept-request:
+ *   post:
+ *     summary: Accept or decline a label invitation
+ *     description: |
+ *       Allows a user to accept or decline a pending label invitation.
+ *       Only pending invitations belonging to the user can be updated.
+ *     tags: [Label]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label_id:
+ *                 type: integer
+ *                 example: 1
+ *               accept:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Invitation accepted or declined successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Label invitation accepted successfully"
+ *       404:
+ *         description: Invitation not found or unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Label invitation not found or not authorized"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+router.post('/accept-request', tokenProfileRequired, acceptLabelRequest);
+
+/**
+ * @swagger
+ * /api/user/label/user-labels:
+ *   get:
+ *     summary: Retrieve user's active labels
+ *     description: |
+ *       Fetches all labels where the authenticated user is an active member.
+ *     tags: [Label]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active labels (or empty list if none)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Labels retrieved successfully"
+ *                 labels:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       owner_id:
+ *                         type: integer
+ *                       member_id:
+ *                         type: integer
+ *                       invitation_message:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+router.post('/user-labels', tokenProfileRequired, getUserLabels);
+
+
 
 module.exports = router;
 

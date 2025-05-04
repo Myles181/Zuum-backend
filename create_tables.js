@@ -1,5 +1,5 @@
-const { createUserTable, createOtpTable } = require('./models/User.model.js');
-const { createProfileTable, PromotionTransactionTable, createVirtualAccountTable, DistributionTable } = require('./models/Profile.model.js');
+const { createUserTable, createOtpTable, createLabelTable } = require('./models/User.model.js');
+const { createProfileTable, PromotionTransactionTable, createVirtualAccountTable, DistributionTable, viewsTable, MusicPromotionTable } = require('./models/Profile.model.js');
 const { createFollowTable } = require('./models/Followers.model.js');
 const { createAccountTable } = require('./models/Account.model.js');
 const { createPaymentTables } = require('./models/Payment.model.js');
@@ -57,6 +57,10 @@ const create_db_tables = async () => {
     await PromotionTransactionTable();
     await createAdminTable();
     await DistributionTable();
+    await viewsTable();
+    await MusicPromotionTable();
+    await createLabelTable();
+    console.log("All tables created successfully!");
 
     return
 }

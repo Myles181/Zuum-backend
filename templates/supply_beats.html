@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Your Beat Purchase</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff; border-radius:8px;">
+          
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background-color:#1a73e8; padding:30px;">
+              <h1 style="margin:0; font-family:Arial,sans-serif; color:#ffffff; font-size:24px;">
+                Your Beat is Ready!
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px; font-family:Arial,sans-serif; color:#333333;">
+              <p>Hi {{USER_NAME}},</p>
+
+              <p>Thank you for your purchase on ZUUMMUSIC. Your beat and license are ready for download.</p>
+
+              <p><strong>Track:</strong> {{BEAT_NAME}}</p>
+
+              <p style="text-align:center; margin:24px 0;">
+                <!-- Beat Download -->
+                <a href="{{BEAT_DOWNLOAD_URL}}" target="_blank"
+                   style="display:inline-block; margin:8px; padding:12px 24px; background-color:#28a745; color:#ffffff; text-decoration:none; font-size:16px; border-radius:4px;">
+                  Download Beat
+                </a>
+
+                <!-- License Download -->
+                <a href="{{LICENSE_DOWNLOAD_URL}}" target="_blank"
+                   style="display:inline-block; margin:8px; padding:12px 24px; background-color:#6c63ff; color:#ffffff; text-decoration:none; font-size:16px; border-radius:4px;">
+                  Download License
+                </a>
+              </p>
+
+              <p>If you have any questions, feel free to contact us at support@zuummusic.com.</p>
+
+              <hr style="border:none; border-top:1px solid #eeeeee; margin:32px 0;">
+
+              <p style="font-size:12px; color:#777777;">
+                You are receiving this email because you made a purchase on our platform.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color:#fafafa; padding:20px; font-family:Arial,sans-serif; font-size:12px; color:#aaaaaa;">
+              © {{CURRENT_YEAR}} ZUUMMUSIC • <a href="mailto:support@zuummusic.com" style="color:#1a73e8; text-decoration:none;">Support</a>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

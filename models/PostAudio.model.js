@@ -20,8 +20,10 @@ const createPostAudioTable = async () => {
                 unlikes INT NOT NULL DEFAULT 0,
                 comments INT NOT NULL DEFAULT 0,
                 shares INT NOT NULL DEFAULT 0,
+                views INT NOT NULL DEFAULT 0,
                 promoted BOOLEAN DEFAULT false,
                 promotion_duration INT DEFAULT 0,
+                status VARCHAR(10) NOT NULL DEFAULT 'pending',
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 

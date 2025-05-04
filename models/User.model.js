@@ -63,10 +63,10 @@ const createLabelTable = async () => {
                 member_id INT NOT NULL,
                 invitation_message TEXT,
                 status VARCHAR(10) NOT NULL DEFAULT 'pending',
-                created_at TIMESTAMPTZ DEFAULT NOW()
+                created_at TIMESTAMPTZ DEFAULT NOW(),
 
-                CONSTRAINT fk_profile FOREIGN KEY (member_id)
-                REFERENCES profile(id) ON DELETE CASCADE
+                CONSTRAINT fk_memeber FOREIGN KEY (member_id)
+                REFERENCES profile(id) ON DELETE CASCADE,
 
                 CONSTRAINT fk_profile FOREIGN KEY (owner_id)
                 REFERENCES profile(id) ON DELETE CASCADE

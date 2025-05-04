@@ -301,3 +301,129 @@ exports.readDistributionRequest = async (req, res) => {
 
     return res.status(200).json({ message: 'Distribution request successfult', result: result.rows[0] });
 };
+
+// Submit beat purchase license
+exports.updateBeatPurchase = async (req, res) => {
+    let { beat_purchase_id, send_email } = req.body;
+    send_email = Boolean(send_email); // Ensure boolean value
+
+    if (!beat_purchase_id) {
+        return res.status(400).json({ message: 'beat_purchase_id is required' });
+    }
+
+    let licenseUrl = null;
+
+    try {
+        // Handle license file upload
+        if (req.files && req.files.license) {
+            const fileExt = path.extname(req.files.license.name).toLowerCase();
+            if (fileExt !== '.pdf') {
+                return res.status(406).json({ message: 'License must be a PDF file' });
+            }
+
+            try {
+                const upload = await cloudinary.uploader.upload(req.files.license.tempFilePath, {
+                    resource_type: "raw",
+                    folder: "beat_licenses",
+                    format: "pdf",
+                });
+
+                licenseUrl = upload.secure_url;
+            } catch (uploadErr) {
+                return res.status(500).json({ message: 'License upload failed', error: uploadErr.message });
+            }
+        }
+
+        // Build dynamic update query
+        let query;
+        let params;
+
+        if (licenseUrl) {
+            query = `
+                UPDATE audio_purchases
+                SET license = $1, send_email = $2
+                WHERE id = $3
+                RETURNING *`;
+            params = [licenseUrl, send_email, beat_purchase_id];
+        } else {
+            query = `
+                UPDATE audio_purchases
+                SET send_email = $1
+                WHERE id = $2
+                RETURNING *`;
+            params = [send_email, beat_purchase_id];
+        }
+
+        const beatData = await db.query(query, params);
+
+        if (beatData.rowCount === 0) {
+            return res.status(404).json({ message: 'Beat Purchase ID not found' });
+        }
+
+        return res.status(200).json({
+            message: 'Updated successfully',
+            beatData: beatData.rows[0],
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.getRecentBeatPurchases = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, send_email } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const filters = [];
+        const values = [];
+
+        // Build filter if send_email query is present
+        if (send_email !== undefined) {
+            filters.push(`send_email = $${values.length + 1}`);
+            values.push(send_email === 'true'); // convert string to boolean
+        }
+
+        // Build the WHERE clause dynamically
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        const query = `
+            SELECT *
+            FROM audio_purchases
+            ${whereClause}
+            ORDER BY created_at DESC
+            LIMIT $${values.length + 1} OFFSET $${values.length + 2}
+        `;
+
+        values.push(parseInt(limit), offset);
+
+        const result = await db.query(query, values);
+
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM audio_purchases
+            ${whereClause}
+        `;
+
+        const countResult = await db.query(countQuery, values.slice(0, values.length - 2));
+
+        return res.status(200).json({
+            message: 'Recent purchases retrieved successfully',
+            data: result.rows,
+            pagination: {
+                total: parseInt(countResult.rows[0].total),
+                page: parseInt(page),
+                limit: parseInt(limit),
+                has_more: offset + result.rows.length < parseInt(countResult.rows[0].total),
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: 'Server error while retrieving recent purchases',
+            error: error.message,
+        });
+    }
+};
+
+

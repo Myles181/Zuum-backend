@@ -10,14 +10,17 @@ const createPostAudioForSaleTable = async () => {
                 caption VARCHAR(255) NOT NULL,
                 description VARCHAR(255),
                 genre VARCHAR(255),
+                license VARCHAR(255),
                 cover_photo VARCHAR(255) NOT NULL,
                 audio_upload VARCHAR(255) NOT NULL,
                 amount INT NOT NULL,
                 total_supply INT DEFAULT 1,
                 total_buyers INT DEFAULT 0,
+                views INT DEFAULT 0,
 
                 promoted BOOLEAN DEFAULT false,
                 promotion_duration INT DEFAULT 0,
+                status VARCHAR(10) NOT NULL DEFAULT 'pending',
 
                 likes INT NOT NULL DEFAULT 0,
                 unlikes INT NOT NULL DEFAULT 0,
@@ -97,6 +100,7 @@ const AudioPurchasesTable = async () => {
                 post_id INT NOT NULL,
                 audio_upload VARCHAR(255) NOT NULL,
                 amount_paid INT NOT NULL,
+                delivered BOOLEAN DEFAULT false,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
                 CONSTRAINT fk_profile FOREIGN KEY (profile_id) 

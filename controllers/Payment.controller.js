@@ -15,7 +15,7 @@ exports.initializePaymentPlans = async (req, res) => {
     try {
         const plans = [
             { name: 'artist', description: 'Annual plan for artists', amount: 16425.00 },
-            { name: 'label', description: 'Annual plan for labels', amount: 32770.00 },
+            { name: 'record_label', description: 'Annual plan for labels', amount: 32770.00 },
             { name: 'producer', description: 'Annual plan for producers', amount: 21860.00 },
         ];
 
