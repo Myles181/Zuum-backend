@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const bodyParser = require('body-parser');
 const { swaggerUi, swaggerSpec } = require('./swagger');
@@ -11,7 +12,11 @@ const fileUpload = require('express-fileupload');
 const { Server } = require('socket.io'); // ✅ Import socket.io 
 const http = require('http'); // ✅ Import http
 const morgan = require("morgan");
+
+// Db config
 const db = require('./config/db.conf.js');
+
+// Cron jobs
 const { startCronJob } = require('./cron-jobs/checkSubscription');
 const { startCronJob: startPromotionCronJob } = require('./cron-jobs/checkPromotions');
 const { startCronJob: startBeatPurchaseCronjob } = require('./cron-jobs/checkBeatDelivery');
@@ -48,6 +53,7 @@ app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
 app.use(express.json()); // ✅ Required for JSON body parsing
+app.use(cookieParser()); // ✅ Required for cookie parsing
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -59,7 +65,8 @@ cloudinary.config({
 app.use(session({
   secret: process.env.SECRET_KEY,
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: { secure: true }
 }));
 
 // Initialize Passport

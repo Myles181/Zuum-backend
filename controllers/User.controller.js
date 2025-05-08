@@ -21,6 +21,7 @@ exports.getProfile = async (req, res) => {
                 COALESCE(p.followers, 0) AS followers,
                 COALESCE(p.following, 0) AS following,
                 p.subscription_status,
+                p.balance,
                 p.created_at,
                 u.username,
                 u.firstname,
@@ -836,7 +837,7 @@ exports.getUserLabels = async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: error.message });
     };
-}
+};
 
 exports.RequestDistribution = async (req, res) => {
     const { description, caption, genre } = req.body;

@@ -18,7 +18,7 @@ const router = express.Router();
  *     tags: [Profile]
  *     description: Retrieves the profile information for the authenticated user
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved profile
@@ -100,7 +100,7 @@ router.get('/profile', tokenProfileRequired, getProfile);
  *     tags: [Profile]
  *     description: Retrieves the profile information for the authenticated user
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -180,7 +180,7 @@ router.get('/profile/:id', tokenProfileRequired, getProfileById);
  *     tags: [Profile]
  *     description: Updates the authenticated user's profile and user details. Email updates trigger a verification email.
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -242,7 +242,7 @@ router.put('/profile', tokenRequired, ...updateProfileValidator, updateProfile);
  *     description: Deletes the authenticated user's profile. Does not affect the user account itself.
  *     tags: [Profile]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Profile deleted successfully
@@ -273,7 +273,7 @@ router.delete('/profile', tokenRequired, deleteProfile);
  *     description: Allows an authenticated user to follow or unfollow another user profile.
  *     tags: [Profile]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -473,7 +473,7 @@ router.get('/get-rooms', tokenProfileRequired, getChatRooms);
  *     description: Returns a list of transactions including promotions, audio sales, and subscriptions
  *     tags: [Transactions]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Successful retrieval of transaction history
@@ -964,7 +964,7 @@ router.get('/musicpromotion-requests', tokenProfileRequired, getMusicPromotionRe
  *       - Returns an error if user does not exist, invitation is already pending, or user is already active.
  *     tags: [Label]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -1038,7 +1038,7 @@ router.get('/label/add-users', tokenProfileRequired, addUsersToLabel);
  *       Only users with `record_label` identity may access.
  *     tags: [Label]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: List of active label members (or empty list if none)
@@ -1104,7 +1104,7 @@ router.get('/label/members', tokenProfileRequired, getLabelMembers);
  *       Only pending invitations belonging to the user can be updated.
  *     tags: [Label]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -1161,7 +1161,7 @@ router.post('/accept-request', tokenProfileRequired, acceptLabelRequest);
  *       Fetches all labels where the authenticated user is an active member.
  *     tags: [Label]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: List of active labels (or empty list if none)

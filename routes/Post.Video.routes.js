@@ -21,7 +21,7 @@ const router = express.Router();
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -63,7 +63,7 @@ router.post('/create', tokenProfileRequired, ...createPostVideoValidator, create
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -107,7 +107,7 @@ router.put('/update', tokenProfileRequired, ...updatePostVideoValidator, updateV
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -139,7 +139,7 @@ router.delete('/del', tokenProfileRequired, ...deletePostVideoValidator, deleteV
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -209,7 +209,7 @@ router.post('/comment/create', tokenProfileRequired, ...commentToVideoPostValida
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -244,7 +244,7 @@ router.put('/comment/update', tokenProfileRequired, ...updateCommentOnVideoPostV
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -277,7 +277,7 @@ router.delete('/comment/del', tokenProfileRequired, ...deleteCommentOnVideoPostV
  *     tags:
  *       - Video Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved video posts
@@ -425,7 +425,7 @@ router.post('/share/create', tokenProfileRequired, ...shareVideoPostValidator, s
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -461,7 +461,7 @@ router.put('/share/update', tokenProfileRequired, ...updateSharedVideoPostValida
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:

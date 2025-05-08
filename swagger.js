@@ -21,11 +21,17 @@ const options = {
           scheme: 'bearer',
           bearerFormat: 'JWT', // Specifies that the token is a JWT
         },
+        cookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'token'
+        }
       },
     },
     security: [
       {
         bearerAuth: [], // Applies Bearer auth globally (optional, can be overridden per route)
+        cookieAuth: [] // Applies Cookie auth globally (optional, can be overridden per route)
       },
     ],
   },

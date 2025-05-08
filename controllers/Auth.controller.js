@@ -154,6 +154,14 @@ exports.login = async (req, res) => {
         if (!user.email_verified) return res.status(406).json({ error: 'Email is not verified' });
 
         const token = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '1d' });
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+            sameSite: 'strict', // Adjust as needed
+            maxAge: 24 * 60 * 60 * 4000 // 4 days
+        });
+
         res.json({ message: 'Login successful', token });
     } catch (error) {
         res.status(500).json({ error: error.message });

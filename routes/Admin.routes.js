@@ -1,6 +1,6 @@
 const express = require('express');
 const { allUsers, login, signup, verifyEmail, resendOtp, deactivateUser, updateBeatPurchase, 
-    getDistributionRequests, readDistributionRequest, getRecentBeatPurchases } = require('../controllers/Admin.controller');
+    getDistributionRequests, readDistributionRequest, forgotPassword, resetPassword, getRecentBeatPurchases } = require('../controllers/Admin.controller');
 const { adminTokenRequired, adminSigninValidator } = require('../middleware/Auth.middleware')
 const router = express.Router();
 
@@ -305,5 +305,65 @@ router.post('/beat/update-purchase', adminTokenRequired, updateBeatPurchase);
  */
 router.get('/beat/recent-purchases', adminTokenRequired, getRecentBeatPurchases);
 
+/**
+ * @swagger
+ * /api/admin/auth/forgot-password:
+ *   post:
+ *     summary: Forgot Password
+ *     tags: [Auth]
+ *     description: Sends a password reset link to the user's email.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset link sent to email.
+ *       404:
+ *         description: User not found.
+ *       500:
+ *         description: Server error.
+ */
+router.post('/auth/forgot-password', adminTokenRequired, forgotPassword);
+
+/**
+ * @swagger
+ * /api/admin/auth/reset-password:
+ *   post:
+ *     summary: Reset Password
+ *     tags: [Auth]
+ *     description: Resets the user's password using a token.
+ * 
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: password
+ *               otp:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password reset successfully.
+ *       400:
+ *         description: Invalid or expired token.
+ *       500:
+ *         description: Server error.
+ */
+router.post('/auth/reset-password', adminTokenRequired, resetPassword);
 
 module.exports = router;

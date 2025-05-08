@@ -18,7 +18,7 @@ const { createAudioPost, updateAudioPost, deleteAudioPost, deleteCommentOnAudioP
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -68,7 +68,7 @@ router.post('/create', tokenProfileRequired, ...createPostAudioValidator, create
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -123,7 +123,7 @@ router.put('/update', tokenProfileRequired, ...updatePostAudioValidator, updateA
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -155,7 +155,7 @@ router.delete('/del', tokenProfileRequired, ...deletePostAudioValidator, deleteA
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -226,7 +226,7 @@ router.post('/comment/create', tokenProfileRequired, ...commentToAudioPostValida
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -262,7 +262,7 @@ router.put('/comment/update', tokenProfileRequired, ...updateCommentOnAudioPostV
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -294,7 +294,7 @@ router.delete('/comment/del', tokenProfileRequired, ...deleteCommentOnAudioPostV
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved audio posts
@@ -441,7 +441,7 @@ router.post('/share/create', tokenProfileRequired, ...shareAudioPostValidator, s
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -477,7 +477,7 @@ router.put('/share/update', tokenProfileRequired, ...updateSharedAudioPostValida
  *     tags:
  *       - Audio Posts
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:

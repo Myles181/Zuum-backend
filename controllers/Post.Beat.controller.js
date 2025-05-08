@@ -709,10 +709,10 @@ exports.getBeatPosts = async (req, res) => {
                     ELSE false 
                 END AS has_purchased
              FROM post_audio_sell p
-             WHERE p.status = 'active'
              JOIN profile pf ON p.profile_id = pf.id
              JOIN users u ON pf.user_id = u.id
              LEFT JOIN audio_purchases ap ON ap.post_id = p.id AND ap.profile_id = $3
+             WHERE p.status = 'active'
              ORDER BY p.created_at DESC
              LIMIT $1 OFFSET $2;`,
             [limit, offset, req.profile.id]  // $1 = limit, $2 = offset, $3 = current user profile ID

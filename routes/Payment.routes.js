@@ -11,7 +11,7 @@ const { handleFlutterwaveWebhook } = require('../controllers/Webhook.controller'
  *     summary: Deposit a funds with transfer payment
  *     tags: [Payment, Dashboard]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Payment initiated
@@ -93,7 +93,7 @@ router.get('/deposit-account', tokenRequired, createVirtualAccount);
  *     summary: Initiate a withdrawal. When a user hits save=true then the withdrawal account inputted saves. if not it doesn't. When a user saves the withdrawal account the accountNumber and bankCode can be left empty and save should be false
  *     tags: [Payment, Dashboard]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -201,7 +201,7 @@ router.post('/withdrawal', tokenRequired, withdrawFunds);
 *     summary: Initiates a payment deposit for subscription
 *     tags: [Payment]
 *     security:
-*       - bearerAuth: []
+*       - cookieAuth: []
 
 *     responses:
 *       200:
@@ -249,7 +249,7 @@ router.get('/subscription', tokenRequired, subscriptionPayment);
 *     summary: Get withdrawal account details
 *     tags: [Payment, Dashboard]
 *     security:
-*       - bearerAuth: []
+*       - cookieAuth: []
 
 *     responses:
 *       200:
@@ -289,7 +289,7 @@ router.get('/account-details', tokenRequired, getAccountDetails);
 *     summary: Get
 *     tags: [Payment, Dashboard]
 *     security:
-*       - bearerAuth: []
+*       - cookieAuth: []
 
 *     responses:
 *       200:
@@ -330,7 +330,7 @@ router.get('/create', tokenRequired, getPaymentPlan)
  *     description: Deducts a fee from user's balance and promotes the specified post if it exists.
  *     tags: [Transactions]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:

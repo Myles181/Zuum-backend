@@ -196,6 +196,14 @@ exports.login = async (req, res) => {
 
         console.log(SECRET_KEY);
         const token = jwt.sign({ id: admin.id }, SECRET_KEY, { expiresIn: '1d' });
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 4000 // 4 days
+        });
+        console.log(res.token);
         res.json({ message: 'Login successful', token });
     } catch (error) {
         console.log(error);
@@ -425,5 +433,95 @@ exports.getRecentBeatPurchases = async (req, res) => {
         });
     }
 };
+
+
+exports.forgotPassword = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    const { email } = req.body;
+
+    try {
+        // Find user in the database
+        const result = await db.query("SELECT * FROM admin WHERE email = $1", [email]);
+
+        console.log(result.rows); // Debugging
+
+        // Ensure `rows` is accessed correctly
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Admin not found" });
+        }
+
+        const user = result.rows[0];
+
+        // Generate a reset token (valid for 15 mins)
+        // const resetToken = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: "15m" });
+
+        // Generate and save OTP
+        const otp = generateOtp();
+        await saveOtp(user.email, otp);
+
+        // Send Email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+        console.log(otp);
+
+        const token = Buffer.from(otp).toString("base64");
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "Password Reset",
+            html: `<p>Click <a href="${FRONTEND_URL}/reset?token=${token}">here</a> to reset your password. If you did not request this, please ignore.</p>`
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.json({ message: "Reset link sent to your email" });
+
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array()[0] });
+    }
+    const { email, token, newPassword } = req.body;
+
+    try {
+        const otp = Buffer.from(token, "base64").toString("utf-8");
+        console.log(otp);
+        const { valid, reason, otpId } = await validateOtp(email, otp);
+
+        if (!valid) {
+            return res.status(400).json({ error: reason });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password in the database
+        await db.query("UPDATE admin SET password = $1 WHERE email = $2", [hashedPassword, email]);
+
+
+        // Mark OTP as used
+        await db.query("UPDATE otp SET status = 'success' WHERE id = $1", [otpId]);
+
+        res.json({ message: "Password reset successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 
