@@ -45,7 +45,8 @@ const corsOptions = {
     'https://zuum-frontend.vercel.app', 'https://df7c-2c0f-2a80-ae2-6f10-a9e7-90ed-9460-456b.ngrok-free.app'], // Allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTION'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  credentials: true, // Allow cookies if needed
+  credentials: true, // Allow cookies if needed,
+  exposedHeaders: ["set-cookie"],
 };
 
 app.use(cors(corsOptions));
